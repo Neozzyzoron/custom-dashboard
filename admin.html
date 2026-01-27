@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Widget Builder</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: #f4f4f4; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; }
+        
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.9rem;}
+        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        button { padding: 10px 15px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; margin-top: 10px; }
+        button.remove { background: #c0392b; font-size: 0.8rem; padding: 5px 10px; margin-top: 5px; }
+        button.add { background: #27ae60; }
+
+        .output-box { margin-top: 30px; background: #e8f6f3; padding: 20px; border: 1px solid #1abc9c; }
+        code { word-break: break-all; display: block; margin-top: 10px; background: white; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Notion Widget Builder</h1>
+    <p>Add blocks below, then click "Generate Link" to get your URL.</p>
+
+    <div id="builder-area">
+        </div>
+
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button onclick="addBlock('header')">+ Header</button>
+        <button onclick="addBlock('world_clock')">+ Clocks</button>
+        <button onclick="addBlock('progress_group')">+ Auto Progress</button>
+        <button onclick="addBlock('progress_custom')">+ Custom Progress (Life/Project)</button>
+    </div>
+
+    <div class="output-box">
+        <h3>Your Embed URL</h3>
+        <p>Copy this link into Notion:</p>
+        <code id="result-url">Generate a link first...</code>
+        <button class="add" onclick="generateLink()">GENERATE LINK</button>
+        <button onclick="preview()">Preview in New Tab</button>
+    </div>
+</div>
+
+<script>
+    let blocks = [];
+
+    // Default template to start
+    blocks.push({ type: 'header', text: 'My Time' });
+    blocks.push({ type: 'progress_group', items: [{type:'day', label:'Today'}] });
+
+    function renderBuilder() {
+        const area = document.getElementById('builder-area');
+        area.innerHTML = '';
+
+        blocks.forEach((block, index) => {
+            const div = document.createElement('div');
+            div.className = 'section';
+            
+            let html = `<strong>Block ${index + 1}: ${block.type.toUpperCase().replace('_', ' ')}</strong>`;
+            
+            if (block.type === 'header') {
+                html += `<label>Header Text</label><input type="text" value="${block.text}" onchange="updateBlock(${index}, 'text', this.value)">`;
+            } 
+            
+            else if (block.type === 'world_clock') {
+                html += `<label>Locations (JSON Format for now)</label>
+                <textarea style="width:100%; height: 60px;" onchange="updateBlockJSON(${index}, 'locations', this.value)">${JSON.stringify(block.locations || [{label:'Home', timezone:'local'}])}</textarea>
+                <small>Use 'local' or 'America/New_York', 'Europe/London' etc.</small>`;
+            }
+
+            else if (block.type === 'progress_group') {
+                html += `<label>Items (JSON Format)</label>
+                <textarea style="width:100%; height: 60px;" onchange="updateBlockJSON(${index}, 'items', this.value)">${JSON.stringify(block.items || [])}</textarea>
+                <small>Example: [{"type":"day", "label":"Today"}, {"type":"quarter", "label":"Q1"}]</small>`;
+            }
+
+            else if (block.type === 'progress_custom') {
+                html += `<label>Label</label><input type="text" value="${block.label || ''}" onchange="updateBlock(${index}, 'label', this.value)">`;
+                html += `<label>Start Date (YYYY-MM-DD)</label><input type="date" value="${block.start || ''}" onchange="updateBlock(${index}, 'start', this.value)">`;
+                html += `<label>End Date (YYYY-MM-DD)</label><input type="date" value="${block.end || ''}" onchange="updateBlock(${index}, 'end', this.value)">`;
+            }
+
+            html += `<br><button class="remove" onclick="removeBlock(${index})">Remove Block</button>`;
+            div.innerHTML = html;
+            area.appendChild(div);
+        });
+    }
+
+    // --- Actions ---
+
+    window.addBlock = (type) => {
+        if(type === 'header') blocks.push({type, text: 'New Header'});
+        if(type === 'world_clock') blocks.push({type, locations: [{label:'Home', timezone:'local'}]});
+        if(type === 'progress_group') blocks.push({type, items: [{type:'month', label:'This Month'}, {type:'quarter', label:'Quarter'}]});
+        if(type === 'progress_custom') blocks.push({type, label: 'Project X', start: '2023-01-01', end: '2023-12-31'});
+        renderBuilder();
+    };
+
+    window.removeBlock = (index) => {
+        blocks.splice(index, 1);
+        renderBuilder();
+    };
+
+    window.updateBlock = (index, key, value) => {
+        blocks[index][key] = value;
+    };
+
+    window.updateBlockJSON = (index, key, value) => {
+        try {
+            blocks[index][key] = JSON.parse(value);
+        } catch(e) {
+            alert("Invalid JSON format");
+        }
+    };
+
+    window.generateLink = () => {
+        const json = JSON.stringify(blocks);
+        // Base64 Encode
+        const encoded = btoa(json);
+        // Get current GitHub URL path, swap admin.html for index.html
+        let baseUrl = window.location.href.replace('admin.html', 'index.html');
+        // Handle case where user is running this locally or cleaner URL
+        if(!baseUrl.includes('index.html')) baseUrl = baseUrl.split('?')[0].split('#')[0];
+        if(baseUrl.endsWith('/')) baseUrl += 'index.html';
+        
+        const finalUrl = `${baseUrl}#${encoded}`;
+        document.getElementById('result-url').innerText = finalUrl;
+        return finalUrl;
+    };
+
+    window.preview = () => {
+        const url = generateLink();
+        window.open(url, '_blank');
+    };
+
+    // Initial Render
+    renderBuilder();
+</script>
+
+</body>
+</html>
