@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Custom Dashboard</title>
+    <title>Notion Dashboard Phase 2</title>
     <style>
         :root {
             --bg-color: #FFFFFF;
             --text-color: #37352F;
-            --accent-color: #E3E2E0; /* Notion Gray */
-            --bar-fill: #37352F;
+            --accent-color: #E3E2E0; /* Light Gray for empty bars */
+            --bar-fill: #37352F;     /* Dark for filled bars */
             --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
         }
 
@@ -27,40 +27,64 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 1rem;
+            padding: 20px;
             box-sizing: border-box;
         }
 
-        /* Container for all widgets */
         #dashboard {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 24px;
             max-width: 600px;
             margin: 0 auto;
         }
 
-        /* Generic Card Styling */
-        .widget-card {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
+        /* --- WIDGET STYLES --- */
+        
+        /* Headers */
         .widget-header {
-            font-size: 0.85rem;
-            font-weight: 600;
-            opacity: 0.6;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 8px;
+            font-weight: 600;
         }
 
-        .widget-content {
-            font-size: 1rem;
+        /* Clocks */
+        .clock-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid var(--accent-color);
+            padding: 8px 0;
+        }
+        .clock-row:last-child { border-bottom: none; }
+        .clock-label { font-weight: 500; }
+        .clock-time { font-family: "SF Mono", "Monaco", monospace; font-weight: 700; }
+
+        /* Progress Bars */
+        .progress-wrapper { margin-bottom: 12px; }
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .progress-bg {
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--bar-fill);
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Error state */
-        .error { color: red; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -68,102 +92,182 @@
     <div id="dashboard"></div>
 
     <script>
-        // --- 1. DEFAULT CONFIGURATION (The "State") ---
-        // Eventually, this will be loaded from the URL. 
-        // For now, we manually define it to test our structure.
-        const defaultConfig = [
+        // ==========================================
+        // 1. CONFIGURATION (USER SETTINGS)
+        // Edit this section to customize your view!
+        // ==========================================
+        const config = [
             {
-                id: 'w1',
-                type: 'clock',
-                title: 'Home Base',
-                settings: { timezone: 'local', showSeconds: false }
+                type: 'header',
+                text: 'Global Time'
             },
             {
-                id: 'w2',
-                type: 'progress_temporal',
-                title: 'Year Progress',
-                settings: { period: 'year' }
-            },
-            {
-                id: 'w3',
                 type: 'world_clock',
-                title: 'Team Locations',
-                settings: { 
-                    locations: [
-                        { label: 'New York', timezone: 'America/New_York' },
-                        { label: 'London', timezone: 'Europe/London' }
-                    ]
-                }
+                locations: [
+                    { label: 'Home', timezone: 'local' },
+                    { label: 'New York', timezone: 'America/New_York' },
+                    { label: 'Tokyo', timezone: 'Asia/Tokyo' }
+                ]
+            },
+            {
+                type: 'header',
+                text: 'Temporal Cycles'
+            },
+            {
+                type: 'progress_group',
+                items: [
+                    { type: 'day', label: 'Day' },
+                    { type: 'week', label: 'Week' },
+                    { type: 'year', label: 'Year' }
+                ]
+            },
+            {
+                type: 'header',
+                text: 'Life & Goals'
+            },
+            {
+                type: 'progress_custom', // Life Progress
+                label: 'Life (Assuming 85)',
+                start: '1995-06-15', // YYYY-MM-DD (Birthdate)
+                end: '2080-06-15'    // Birthdate + 85 years
+            },
+            {
+                type: 'progress_custom', // Custom Project
+                label: 'Project Launch',
+                start: '2023-11-01',
+                end: '2024-05-01'
             }
         ];
 
-        // --- 2. THE RENDER ENGINE ---
-        function renderDashboard(config) {
-            const container = document.getElementById('dashboard');
-            container.innerHTML = ''; // Clear current
+        // ==========================================
+        // 2. THE ENGINE (Don't touch unless coding)
+        // ==========================================
 
+        const container = document.getElementById('dashboard');
+
+        function render() {
+            container.innerHTML = '';
             config.forEach(widget => {
-                const widgetEl = document.createElement('div');
-                widgetEl.className = 'widget-card';
-                widgetEl.id = widget.id;
-
-                // Create Header
-                if (widget.title) {
-                    const header = document.createElement('div');
-                    header.className = 'widget-header';
-                    header.innerText = widget.title;
-                    widgetEl.appendChild(header);
-                }
-
-                // Create Content Container
-                const content = document.createElement('div');
-                content.className = 'widget-content';
-                
-                // Route to specific widget renderers
-                try {
-                    if (widget.type === 'clock') renderClock(content, widget.settings);
-                    else if (widget.type === 'progress_temporal') renderPlaceholder(content, 'Progress Bar (Coming Soon)');
-                    else if (widget.type === 'world_clock') renderPlaceholder(content, 'World Clock List (Coming Soon)');
-                    else renderPlaceholder(content, `Unknown Widget: ${widget.type}`);
-                } catch (e) {
-                    content.innerHTML = `<span class="error">Error loading widget</span>`;
-                    console.error(e);
-                }
-
-                widgetEl.appendChild(content);
-                container.appendChild(widgetEl);
+                if (widget.type === 'header') renderHeader(widget);
+                else if (widget.type === 'world_clock') renderWorldClock(widget);
+                else if (widget.type === 'progress_group') renderProgressGroup(widget);
+                else if (widget.type === 'progress_custom') renderCustomBar(widget);
             });
         }
 
-        // --- 3. COMPONENT LOGIC (Basic) ---
+        // --- Renderers ---
 
-        function renderPlaceholder(container, text) {
-            container.innerHTML = `<div style="padding: 10px; background: var(--accent-color); border-radius: 4px;">${text}</div>`;
+        function renderHeader(data) {
+            const el = document.createElement('div');
+            el.className = 'widget-header';
+            el.innerText = data.text;
+            container.appendChild(el);
         }
 
-        function renderClock(container, settings) {
-            const timeEl = document.createElement('div');
-            timeEl.style.fontSize = '2.5rem';
-            timeEl.style.fontWeight = '700';
+        function renderWorldClock(data) {
+            const box = document.createElement('div');
+            const now = new Date();
+
+            data.locations.forEach(loc => {
+                const row = document.createElement('div');
+                row.className = 'clock-row';
+                
+                // Handle Timezone
+                let timeStr;
+                const options = { hour: '2-digit', minute: '2-digit' };
+                if (loc.timezone !== 'local') options.timeZone = loc.timezone;
+                timeStr = now.toLocaleTimeString([], options);
+
+                row.innerHTML = `<span class="clock-label">${loc.label}</span><span class="clock-time">${timeStr}</span>`;
+                box.appendChild(row);
+            });
+            container.appendChild(box);
+        }
+
+        function renderProgressGroup(data) {
+            const box = document.createElement('div');
+            data.items.forEach(item => {
+                const dates = getDatesForType(item.type);
+                if(dates) {
+                    box.appendChild(createBarElement(item.label, dates.start, dates.end));
+                }
+            });
+            container.appendChild(box);
+        }
+
+        function renderCustomBar(data) {
+            const start = new Date(data.start);
+            const end = new Date(data.end);
+            container.appendChild(createBarElement(data.label, start, end));
+        }
+
+        // --- Logic & Math ---
+
+        function createBarElement(label, start, end) {
+            const now = new Date();
+            let percent = 0;
             
-            function tick() {
-                const now = new Date();
-                timeEl.innerText = now.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: settings.showSeconds ? '2-digit' : undefined 
-                });
+            // Prevent division by zero or future dates breaking math
+            if (now > end) percent = 100;
+            else if (now < start) percent = 0;
+            else {
+                percent = ((now - start) / (end - start)) * 100;
             }
-            
-            tick();
-            setInterval(tick, 1000);
-            container.appendChild(timeEl);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'progress-wrapper';
+            wrapper.innerHTML = `
+                <div class="progress-meta">
+                    <span>${label}</span>
+                    <span>${percent.toFixed(1)}%</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-fill" style="width: ${percent}%"></div>
+                </div>
+            `;
+            return wrapper;
         }
 
-        // --- 4. INITIALIZATION ---
-        // In the future, we will check URL params here.
-        renderDashboard(defaultConfig);
+        function getDatesForType(type) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const date = now.getDate();
+            const day = now.getDay(); // 0 is Sunday
 
+            if (type === 'day') {
+                return {
+                    start: new Date(year, month, date, 0, 0, 0),
+                    end: new Date(year, month, date, 23, 59, 59)
+                };
+            }
+            if (type === 'week') {
+                // Assume Monday start
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                const start = new Date(now.setDate(diff));
+                start.setHours(0,0,0,0);
+                const end = new Date(start);
+                end.setDate(start.getDate() + 7);
+                return { start, end };
+            }
+            if (type === 'month') {
+                return {
+                    start: new Date(year, month, 1),
+                    end: new Date(year, month + 1, 0)
+                };
+            }
+            if (type === 'year') {
+                return {
+                    start: new Date(year, 0, 1),
+                    end: new Date(year + 1, 0, 1)
+                };
+            }
+            return null;
+        }
+
+        // --- Loop ---
+        render(); // Initial draw
+        setInterval(render, 1000 * 60); // Redraw every minute
     </script>
 </body>
 </html>
