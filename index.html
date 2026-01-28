@@ -37,31 +37,25 @@
         .theme-minimal .clock-time, .theme-minimal .countdown-time { font-weight: 400 !important; }
         .theme-minimal .progress-bg { height: 4px !important; }
 
-        /* Common Styles */
+        /* Styles */
         .widget-header { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 0.5rem; font-weight: 600; }
-        
-        /* Clock */
         .clock-row { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--accent-color); padding: 0.5rem 0; }
         .clock-row:last-child { border-bottom: none; }
         .clock-time { font-family: "SF Mono", "Monaco", monospace; font-weight: 700; }
 
-        /* Progress */
         .progress-wrapper { margin-bottom: 0.75rem; }
         .progress-meta { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 0.25rem; font-weight: 500; }
         .progress-bg { height: 10px; background-color: var(--accent-color); border-radius: 5px; overflow: hidden; }
         .progress-fill { height: 100%; background-color: var(--bar-fill); width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* Countdown */
         .countdown-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
         .countdown-label { font-weight: 500; }
         .countdown-time { font-family: "SF Mono", "Monaco", monospace; font-weight: 700; background: var(--accent-color); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
 
-        /* Timer */
         .timer-container { text-align: center; padding: 10px; background: var(--accent-color); border-radius: 8px; }
         .timer-display { font-size: 2em; font-weight: 700; font-family: "SF Mono", monospace; margin: 10px 0; }
         .timer-controls { display: flex; gap: 10px; justify-content: center; }
         .timer-btn { background: var(--bg-color); color: var(--text-color); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: 600; }
-        .timer-btn:hover { opacity: 0.8; }
 
         .error { color: #eb5757; font-size: 0.9em; text-align: center; padding: 20px;}
     </style>
@@ -70,7 +64,6 @@
     <div id="dashboard"></div>
 
     <script>
-        // --- 1. CONFIG PARSER ---
         function getConfig() {
             try {
                 const hash = window.location.hash.substring(1); 
@@ -81,7 +74,6 @@
             } catch (e) { return null; }
         }
 
-        // --- 2. RENDERER ---
         const container = document.getElementById('dashboard');
 
         function render() {
@@ -91,35 +83,30 @@
                 return;
             }
 
-            // Global Settings
             const settings = data.settings || {};
             document.body.className = `theme-${settings.theme || 'standard'}`;
             if(settings.fontSize === 'small') document.documentElement.style.setProperty('--base-size', '14px');
             if(settings.fontSize === 'large') document.documentElement.style.setProperty('--base-size', '18px');
 
-            // Render Blocks (Only if container is empty, to prevent Timer resets on redraw)
             if(container.innerHTML === '') {
                 data.blocks.forEach((block, index) => {
                     const blockDiv = document.createElement('div');
                     blockDiv.className = 'widget-block';
-                    blockDiv.id = `block-${index}`; // Unique ID for timers
+                    blockDiv.id = `block-${index}`;
 
                     if (block.type === 'header') renderHeader(block, blockDiv);
                     else if (block.type === 'world_clock') renderWorldClock(block, blockDiv, settings);
                     else if (block.type === 'progress_group') renderProgressGroup(block, blockDiv);
                     else if (block.type === 'progress_custom') renderCustomBar(block, blockDiv);
+                    else if (block.type === 'progress_cycle') renderCycleProgress(block, blockDiv);
                     else if (block.type === 'countdown') renderCountdown(block, blockDiv);
                     else if (block.type === 'timer') renderTimer(block, blockDiv, index);
                     
                     container.appendChild(blockDiv);
                 });
             }
-
-            // Update Dynamic Content (Clocks, Countdowns)
             updateDynamicElements(data.blocks, settings);
         }
-
-        // --- RENDER FUNCTIONS ---
 
         function renderHeader(data, parent) {
             const el = document.createElement('div');
@@ -127,9 +114,7 @@
             el.innerText = data.text;
             parent.appendChild(el);
         }
-
-        function renderWorldClock(data, parent, settings) {
-            // Static Structure, content updated by updateDynamicElements
+        function renderWorldClock(data, parent) {
             data.locations.forEach((loc, i) => {
                 const row = document.createElement('div');
                 row.className = 'clock-row';
@@ -137,51 +122,46 @@
                 parent.appendChild(row);
             });
         }
-
         function renderProgressGroup(data, parent) {
             data.items.forEach(item => {
                 const dates = getDatesForType(item.type);
                 if(dates) parent.appendChild(createBarElement(item.label, dates.start, dates.end));
             });
         }
-
         function renderCustomBar(data, parent) {
             parent.appendChild(createBarElement(data.label, new Date(data.start), new Date(data.end)));
+        }
+        
+        function renderCycleProgress(data, parent) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'progress-wrapper';
+            wrapper.id = `cycle-${parent.id}`;
+            wrapper.innerHTML = `
+                <div class="progress-meta"><span id="cycle-label-${parent.id}">${data.label}</span><span id="cycle-pct-${parent.id}">0%</span></div>
+                <div class="progress-bg"><div class="progress-fill" id="cycle-bar-${parent.id}" style="width: 0%"></div></div>
+            `;
+            parent.appendChild(wrapper);
         }
 
         function renderCountdown(data, parent) {
             const row = document.createElement('div');
             row.className = 'countdown-row';
-            // ID used for updates
             row.innerHTML = `<span class="countdown-label">${data.label}</span><span class="countdown-time" id="cnt-${parent.id}">Loading...</span>`;
             parent.appendChild(row);
         }
-
         function renderTimer(data, parent, id) {
-            const storageKey = `notion_timer_${id}`;
-            
             const wrapper = document.createElement('div');
             wrapper.className = 'timer-container';
-            wrapper.innerHTML = `
-                <div style="font-size:0.8em; opacity:0.7; text-transform:uppercase; letter-spacing:1px;">${data.label || 'Focus Timer'}</div>
-                <div class="timer-display" id="timer-display-${id}">00:00</div>
-                <div class="timer-controls">
-                    <button class="timer-btn" onclick="startTimer(${id}, 25)">25m</button>
-                    <button class="timer-btn" onclick="startTimer(${id}, 5)">5m</button>
-                    <button class="timer-btn" style="color:#eb5757" onclick="stopTimer(${id})">Stop</button>
-                </div>
-            `;
+            wrapper.innerHTML = `<div style="font-size:0.8em; opacity:0.7; text-transform:uppercase;">${data.label || 'Timer'}</div><div class="timer-display" id="timer-display-${id}">00:00</div><div class="timer-controls"><button class="timer-btn" onclick="startTimer(${id}, 25)">25m</button><button class="timer-btn" onclick="startTimer(${id}, 5)">5m</button><button class="timer-btn" style="color:#eb5757" onclick="stopTimer(${id})">Stop</button></div>`;
             parent.appendChild(wrapper);
         }
-
-        // --- UPDATERS & LOGIC ---
 
         function updateDynamicElements(blocks, settings) {
             const now = new Date();
             const use24h = settings.use24h === true;
 
             blocks.forEach((block, bIdx) => {
-                // Update Clocks
+                // Clocks
                 if (block.type === 'world_clock') {
                     block.locations.forEach((loc, lIdx) => {
                         const el = document.getElementById(`clock-block-${bIdx}-${lIdx}`);
@@ -194,112 +174,86 @@
                         }
                     });
                 }
-
-                // Update Countdowns
+                // Countdowns
                 if (block.type === 'countdown') {
                     const el = document.getElementById(`cnt-block-${bIdx}`);
                     if(el) {
-                        const target = new Date(block.date);
-                        const diff = target - now;
-                        
-                        if (diff <= 0) {
-                            el.innerText = "Done";
-                        } else {
+                        const diff = new Date(block.date) - now;
+                        if (diff <= 0) el.innerText = "Done";
+                        else {
                             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
                             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            
                             if (block.style === 'days') el.innerText = `${days}d`;
-                            else el.innerText = `${days}d ${hours}h ${mins}m`;
+                            else el.innerText = `${days}d ${hours}h`;
                         }
                     }
                 }
-                
-                // Update Timers
-                if (block.type === 'timer') {
-                    updateTimerDisplay(bIdx);
+                // Cycle Progress (UPDATED TO DAYS)
+                if (block.type === 'progress_cycle') {
+                    const anchor = new Date(block.anchor);
+                    // Use 'days' from config, default to 1 if missing/zero
+                    const days = parseFloat(block.days) || 1; 
+                    const duration = days * 24 * 60 * 60 * 1000;
+                    
+                    let elapsed = now - anchor;
+                    
+                    if (elapsed < 0) {
+                        updateCycleUI(bIdx, 0); 
+                    } else {
+                        const currentCycleElapsed = elapsed % duration;
+                        const percent = (currentCycleElapsed / duration) * 100;
+                        updateCycleUI(bIdx, percent);
+                    }
                 }
+                // Timers
+                if (block.type === 'timer') updateTimerDisplay(bIdx);
             });
         }
 
-        // --- TIMER LOGIC (PERSISTENT) ---
-        window.startTimer = (id, minutes) => {
-            const end = new Date().getTime() + (minutes * 60000);
-            localStorage.setItem(`notion_timer_${id}`, end);
-            updateTimerDisplay(id);
-        };
+        function updateCycleUI(id, percent) {
+            const bar = document.getElementById(`cycle-bar-block-${id}`);
+            const txt = document.getElementById(`cycle-pct-block-${id}`);
+            if(bar && txt) {
+                bar.style.width = `${percent}%`;
+                txt.innerText = `${percent.toFixed(1)}%`;
+            }
+        }
 
-        window.stopTimer = (id) => {
-            localStorage.removeItem(`notion_timer_${id}`);
-            updateTimerDisplay(id);
-        };
-
+        window.startTimer = (id, m) => { localStorage.setItem(`notion_timer_${id}`, new Date().getTime() + (m * 60000)); updateTimerDisplay(id); };
+        window.stopTimer = (id) => { localStorage.removeItem(`notion_timer_${id}`); updateTimerDisplay(id); };
         function updateTimerDisplay(id) {
             const el = document.getElementById(`timer-display-${id}`);
             const end = localStorage.getItem(`notion_timer_${id}`);
-            
-            if (!end) {
-                el.innerText = "00:00";
-                return;
-            }
-
-            const now = new Date().getTime();
-            const distance = end - now;
-
-            if (distance < 0) {
-                el.innerText = "Done!";
-                localStorage.removeItem(`notion_timer_${id}`); // Clear when done
-                return;
-            }
-
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            
-            el.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (!end) { el.innerText = "00:00"; return; }
+            const distance = end - new Date().getTime();
+            if (distance < 0) { el.innerText = "Done!"; localStorage.removeItem(`notion_timer_${id}`); return; }
+            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((distance % (1000 * 60)) / 1000);
+            el.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
-
-        // --- HELPERS ---
         function createBarElement(label, start, end) {
             const now = new Date();
             let percent = 0;
             if (now > end) percent = 100;
             else if (now > start) percent = ((now - start) / (end - start)) * 100;
-
             const wrapper = document.createElement('div');
             wrapper.className = 'progress-wrapper';
-            wrapper.innerHTML = `
-                <div class="progress-meta"><span>${label}</span><span>${percent.toFixed(1)}%</span></div>
-                <div class="progress-bg"><div class="progress-fill" style="width: ${percent}%"></div></div>
-            `;
+            wrapper.innerHTML = `<div class="progress-meta"><span>${label}</span><span>${percent.toFixed(1)}%</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${percent}%"></div></div>`;
             return wrapper;
         }
-
         function getDatesForType(type) {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            if (type === 'day') return { start: new Date(year, month, now.getDate()), end: new Date(year, month, now.getDate(), 23, 59, 59) };
-            if (type === 'week') {
-                const day = now.getDay();
-                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                const start = new Date(now.setDate(diff)); start.setHours(0,0,0,0);
-                const end = new Date(start); end.setDate(start.getDate() + 7);
-                return { start, end };
-            }
-            if (type === 'month') return { start: new Date(year, month, 1), end: new Date(year, month + 1, 0) };
-            if (type === 'quarter') {
-                const quarter = Math.floor(month / 3);
-                return { start: new Date(year, quarter * 3, 1), end: new Date(year, (quarter + 1) * 3, 1) };
-            }
-            if (type === 'year') return { start: new Date(year, 0, 1), end: new Date(year + 1, 0, 1) };
+            const y = now.getFullYear(), m = now.getMonth();
+            if (type === 'day') return { start: new Date(y, m, now.getDate()), end: new Date(y, m, now.getDate(), 23, 59, 59) };
+            if (type === 'week') { const d = now.getDay(), diff = now.getDate() - d + (d === 0 ? -6 : 1); const s = new Date(now.setDate(diff)); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(s.getDate() + 7); return { start: s, end: e }; }
+            if (type === 'month') return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
+            if (type === 'quarter') { const q = Math.floor(m / 3); return { start: new Date(y, q * 3, 1), end: new Date(y, (q + 1) * 3, 1) }; }
+            if (type === 'year') return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
             return null;
         }
 
         render();
-        setInterval(() => {
-            const data = getConfig();
-            if(data) updateDynamicElements(data.blocks, data.settings);
-        }, 1000); // Tick every second
+        setInterval(() => { const d = getConfig(); if(d) updateDynamicElements(d.blocks, d.settings); }, 1000);
     </script>
 </body>
 </html>
