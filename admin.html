@@ -19,7 +19,7 @@
         .drag-handle { cursor: grab; padding: 5px 10px; font-size: 1.2rem; color: #aaa; user-select: none; }
         .drag-handle:hover { color: #333; }
 
-        /* Block Card Colors (Matching Buttons) */
+        /* Block Card Colors */
         .block-card.type-header         { border-left-color: #bdc3c7; } /* Grey */
         .block-card.type-world_clock    { border-left-color: #1abc9c; } /* Teal */
         .block-card.type-progress_group { border-left-color: #e67e22; } /* Orange */
@@ -44,7 +44,7 @@
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         button:active { transform: translateY(1px); }
 
-        /* COLOR CODED BUTTONS */
+        /* Colored Buttons */
         .btn-header { background: #eaeded; color: #555; border: 1px solid #bdc3c7; }        /* Grey */
         .btn-time   { background: #d1f2eb; color: #0e6251; border: 1px solid #a2d9ce; }     /* Teal */
         .btn-auto   { background: #fdebd0; color: #935116; border: 1px solid #f5cba7; }     /* Orange */
@@ -107,6 +107,7 @@
                 const data = JSON.parse(atob(hash));
                 if(data.settings) {
                     settings = data.settings;
+                    // Update visual inputs to match loaded settings
                     document.getElementById('set-time').value = settings.use24h ? '24' : '12';
                     document.getElementById('set-theme').value = settings.theme;
                     document.getElementById('set-font').value = settings.fontSize;
@@ -121,14 +122,13 @@
         generateLink();
     }
 
-    // --- RENDERER (With Drag & Drop) ---
+    // --- RENDERER ---
     function renderBlocks() {
         const area = document.getElementById('blocks-area');
         area.innerHTML = '';
 
         blocks.forEach((block, index) => {
             const div = document.createElement('div');
-            // Assign class based on type for border color
             div.className = `block-card type-${block.type}`;
             div.draggable = true;
             div.dataset.index = index;
@@ -162,7 +162,7 @@
         });
     }
 
-    // --- DRAG & DROP LOGIC ---
+    // --- DRAG & DROP ---
     let dragSrcEl = null;
 
     function handleDragStart(e) {
@@ -214,16 +214,37 @@
     window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); generateLink(); };
     window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; generateLink(); };
     window.updateBlockJSON = (idx, key, val) => { try { blocks[idx][key] = JSON.parse(val); generateLink(); } catch(e){} };
-    window.updateSettings = () => { settings.use24h = document.getElementById('set-time').value === '24'; settings.theme = document.getElementById('set-theme').value; settings.fontSize = document.getElementById('set-font').value; generateLink(); };
+    
+    window.updateSettings = () => { 
+        settings.use24h = document.getElementById('set-time').value === '24'; 
+        settings.theme = document.getElementById('set-theme').value; 
+        settings.fontSize = document.getElementById('set-font').value; 
+        generateLink(); 
+    };
+
+    // --- LINK GENERATION (FIXED) ---
     window.generateLink = () => {
         const fullConfig = { settings: settings, blocks: blocks };
         const encoded = btoa(JSON.stringify(fullConfig));
-        let baseUrl = window.location.href.replace('admin.html', 'index.html');
-        if(!baseUrl.includes('index.html')) baseUrl = baseUrl.split('?')[0].split('#')[0].replace(/\/$/, "") + '/index.html';
-        const finalUrl = `${baseUrl}#${encoded}`;
+        
+        // 1. Get current URL without hash/params
+        let url = window.location.href.split('#')[0].split('?')[0];
+
+        // 2. Ensure we point to index.html
+        if (url.includes('admin.html')) {
+            url = url.replace('admin.html', 'index.html');
+        } else if (url.endsWith('/')) {
+            url += 'index.html';
+        } else if (!url.endsWith('index.html')) {
+            url += '/index.html';
+        }
+
+        // 3. Construct clean final URL
+        const finalUrl = `${url}#${encoded}`;
         document.getElementById('result-url').innerText = finalUrl;
         return finalUrl;
     };
+
     window.preview = () => { window.open(generateLink(), '_blank'); };
 
     init();
