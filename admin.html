@@ -12,7 +12,7 @@
         /* Dragging Styles */
         .block-card { 
             background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; 
-            border-left: 6px solid #999; /* Default */
+            border-left: 6px solid #999; 
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .block-card.dragging { opacity: 0.5; border: 2px dashed #666; }
@@ -45,16 +45,16 @@
         button:active { transform: translateY(1px); }
 
         /* Colored Buttons */
-        .btn-header { background: #eaeded; color: #555; border: 1px solid #bdc3c7; }        /* Grey */
-        .btn-time   { background: #d1f2eb; color: #0e6251; border: 1px solid #a2d9ce; }     /* Teal */
-        .btn-auto   { background: #fdebd0; color: #935116; border: 1px solid #f5cba7; }     /* Orange */
-        .btn-custom { background: #fcf3cf; color: #7d6608; border: 1px solid #f9e79f; }     /* Gold */
-        .btn-cycle  { background: #ebdef0; color: #5b2c6f; border: 1px solid #d2b4de; }     /* Purple */
-        .btn-count  { background: #d6eaf8; color: #154360; border: 1px solid #a9cce3; }     /* Blue */
-        .btn-timer  { background: #fadbd8; color: #78281f; border: 1px solid #e6b0aa; }     /* Red */
+        .btn-header { background: #eaeded; color: #555; border: 1px solid #bdc3c7; }        
+        .btn-time   { background: #d1f2eb; color: #0e6251; border: 1px solid #a2d9ce; }     
+        .btn-auto   { background: #fdebd0; color: #935116; border: 1px solid #f5cba7; }     
+        .btn-custom { background: #fcf3cf; color: #7d6608; border: 1px solid #f9e79f; }     
+        .btn-cycle  { background: #ebdef0; color: #5b2c6f; border: 1px solid #d2b4de; }     
+        .btn-count  { background: #d6eaf8; color: #154360; border: 1px solid #a9cce3; }     
+        .btn-timer  { background: #fadbd8; color: #78281f; border: 1px solid #e6b0aa; }     
         
         .btn-rem { background: transparent; color: #c0392b; border: 1px solid #c0392b; padding: 4px 10px; font-size: 0.75rem; }
-        .btn-gen { background: #27ae60; color: white; width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;}
+        .btn-gen { background: #27ae60; color: white; width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px; transition: background 0.2s;}
 
         .output-box { margin-top: 30px; background: #2c3e50; color: white; padding: 20px; border-radius: 8px; }
         code { word-break: break-all; display: block; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;}
@@ -91,7 +91,7 @@
             <button onclick="preview()" style="background:white; color:#333; padding: 5px 10px; font-size:0.8rem;">Open Preview</button>
         </div>
         <code id="result-url">...</code>
-        <button class="btn-gen" onclick="generateLink()">UPDATE LINK</button>
+        <button id="gen-btn" class="btn-gen" onclick="generateLink(true)">UPDATE LINK</button>
     </div>
 </div>
 
@@ -102,12 +102,13 @@
     // --- INITIALIZATION ---
     function init() {
         try {
+            // Get data after the '#'
             const hash = window.location.hash.substring(1);
             if(hash) {
                 const data = JSON.parse(atob(hash));
                 if(data.settings) {
                     settings = data.settings;
-                    // Update visual inputs to match loaded settings
+                    // Pre-fill inputs
                     document.getElementById('set-time').value = settings.use24h ? '24' : '12';
                     document.getElementById('set-theme').value = settings.theme;
                     document.getElementById('set-font').value = settings.fontSize;
@@ -116,10 +117,10 @@
             } else {
                 blocks = [{ type: 'header', text: 'New Dashboard' }];
             }
-        } catch(e) { console.log('New Load'); }
+        } catch(e) { console.log('Starting fresh'); }
 
         renderBlocks();
-        generateLink();
+        generateLink(false); // Generate initial link without flashing button
     }
 
     // --- RENDERER ---
@@ -164,35 +165,20 @@
 
     // --- DRAG & DROP ---
     let dragSrcEl = null;
-
-    function handleDragStart(e) {
-        dragSrcEl = this;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', this.innerHTML);
-        this.classList.add('dragging');
-    }
-
-    function handleDragOver(e) {
-        if (e.preventDefault) e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        return false;
-    }
-
+    function handleDragStart(e) { dragSrcEl = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/html', this.innerHTML); this.classList.add('dragging'); }
+    function handleDragOver(e) { if (e.preventDefault) e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; }
     function handleDragEnter(e) { this.classList.add('over'); }
     function handleDragLeave(e) { this.classList.remove('over'); }
-
     function handleDrop(e) {
         if (e.stopPropagation) e.stopPropagation();
-        
         const srcIndex = parseInt(dragSrcEl.dataset.index);
         const targetIndex = parseInt(this.dataset.index);
-
         if (dragSrcEl !== this) {
             const item = blocks[srcIndex];
             blocks.splice(srcIndex, 1);
             blocks.splice(targetIndex, 0, item);
             renderBlocks();
-            generateLink();
+            generateLink(false);
         }
         return false;
     }
@@ -208,44 +194,69 @@
         if(type === 'timer') { newBlock.label = 'Focus'; }
         if(type === 'progress_cycle') { newBlock.label = 'Cycle'; newBlock.anchor = '2024-01-01'; newBlock.days = '30'; }
 
-        blocks.push(newBlock); renderBlocks(); generateLink();
+        blocks.push(newBlock); renderBlocks(); generateLink(false);
     };
 
-    window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); generateLink(); };
-    window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; generateLink(); };
-    window.updateBlockJSON = (idx, key, val) => { try { blocks[idx][key] = JSON.parse(val); generateLink(); } catch(e){} };
+    window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); generateLink(false); };
+    window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; generateLink(false); };
+    window.updateBlockJSON = (idx, key, val) => { try { blocks[idx][key] = JSON.parse(val); generateLink(false); } catch(e){} };
     
     window.updateSettings = () => { 
         settings.use24h = document.getElementById('set-time').value === '24'; 
         settings.theme = document.getElementById('set-theme').value; 
         settings.fontSize = document.getElementById('set-font').value; 
-        generateLink(); 
+        generateLink(false); 
     };
 
-    // --- LINK GENERATION (FIXED) ---
-    window.generateLink = () => {
-        const fullConfig = { settings: settings, blocks: blocks };
-        const encoded = btoa(JSON.stringify(fullConfig));
-        
-        // 1. Get current URL without hash/params
-        let url = window.location.href.split('#')[0].split('?')[0];
+    // --- LINK GENERATION (FIXED LOGIC) ---
+    window.generateLink = (flashButton) => {
+        try {
+            const fullConfig = { settings: settings, blocks: blocks };
+            const jsonString = JSON.stringify(fullConfig);
+            
+            // Basic Base64 encoding (Standard)
+            const encoded = btoa(jsonString);
+            
+            // 1. Get current URL base. 
+            // We split by '#' to remove OLD hash.
+            // We split by '?' to remove OLD params.
+            let baseUrl = window.location.href.split('#')[0].split('?')[0];
 
-        // 2. Ensure we point to index.html
-        if (url.includes('admin.html')) {
-            url = url.replace('admin.html', 'index.html');
-        } else if (url.endsWith('/')) {
-            url += 'index.html';
-        } else if (!url.endsWith('index.html')) {
-            url += '/index.html';
+            // 2. Ensure we point to index.html, not admin.html
+            // This regex replaces "admin.html" or "admin" with "index.html"
+            if (baseUrl.includes('admin.html')) {
+                baseUrl = baseUrl.replace('admin.html', 'index.html');
+            } else if (baseUrl.endsWith('/')) {
+                baseUrl += 'index.html';
+            } else if (!baseUrl.endsWith('index.html')) {
+                // Case: /repo-name (no file specified)
+                baseUrl += '/index.html';
+            }
+
+            // 3. Combine
+            const finalUrl = `${baseUrl}#${encoded}`;
+            document.getElementById('result-url').innerText = finalUrl;
+            
+            // Visual feedback
+            if(flashButton) {
+                const btn = document.getElementById('gen-btn');
+                const originalText = btn.innerText;
+                btn.innerText = "LINK UPDATED!";
+                btn.style.background = "#2ecc71";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "#27ae60";
+                }, 1000);
+            }
+
+            return finalUrl;
+        } catch (e) {
+            console.error(e);
+            alert("Error: " + e.message + "\n\nNote: Emojis and special characters are not supported yet.");
         }
-
-        // 3. Construct clean final URL
-        const finalUrl = `${url}#${encoded}`;
-        document.getElementById('result-url').innerText = finalUrl;
-        return finalUrl;
     };
 
-    window.preview = () => { window.open(generateLink(), '_blank'); };
+    window.preview = () => { window.open(generateLink(false), '_blank'); };
 
     init();
 </script>
