@@ -2,142 +2,181 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Widget Builder</title>
+    <title>Widget Builder 2.0</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: #f4f4f4; }
-        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { margin-top: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: #f4f4f4; color: #333; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { margin-top: 0; font-size: 1.5rem;}
+        h2 { font-size: 1.1rem; margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         
-        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.9rem;}
-        input, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
-        button { padding: 10px 15px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; margin-top: 10px; }
-        button.remove { background: #c0392b; font-size: 0.8rem; padding: 5px 10px; margin-top: 5px; }
-        button.add { background: #27ae60; }
+        /* Settings Panel */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
+        
+        .block-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
+        .block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .block-type { font-weight: bold; text-transform: uppercase; font-size: 0.8rem; color: #666; background: #eee; padding: 3px 6px; border-radius: 4px; }
+        
+        label { display: block; margin-top: 8px; font-weight: 600; font-size: 0.85rem; color: #555;}
+        input, select, textarea { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; box-sizing: border-box;}
+        
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;}
+        button { padding: 10px 16px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: background 0.2s; }
+        button:hover { opacity: 0.9; }
+        
+        .btn-add { background: #e3e2e0; color: #333; }
+        .btn-rem { background: transparent; color: #c0392b; border: 1px solid #c0392b; padding: 4px 10px; font-size: 0.8rem; }
+        .btn-gen { background: #27ae60; color: white; width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;}
 
-        .output-box { margin-top: 30px; background: #e8f6f3; padding: 20px; border: 1px solid #1abc9c; }
-        code { word-break: break-all; display: block; margin-top: 10px; background: white; padding: 10px; border: 1px solid #ccc; }
+        .output-box { margin-top: 30px; background: #2c3e50; color: white; padding: 20px; border-radius: 8px; }
+        code { word-break: break-all; display: block; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;}
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Notion Widget Builder</h1>
-    <p>Add blocks below, then click "Generate Link" to get your URL.</p>
 
-    <div id="builder-area">
+    <h2>1. Visual Settings</h2>
+    <div class="settings-grid">
+        <div>
+            <label>Time Format</label>
+            <select id="set-time" onchange="updateSettings()">
+                <option value="12">12 Hour (1:00 PM)</option>
+                <option value="24">24 Hour (13:00)</option>
+            </select>
         </div>
+        <div>
+            <label>Theme Style</label>
+            <select id="set-theme" onchange="updateSettings()">
+                <option value="standard">Standard (Clean)</option>
+                <option value="minimal">Minimal (Thin)</option>
+                <option value="card">Cards (Bordered)</option>
+            </select>
+        </div>
+        <div>
+            <label>Font Size</label>
+            <select id="set-font" onchange="updateSettings()">
+                <option value="standard">Standard</option>
+                <option value="small">Compact (Small)</option>
+                <option value="large">Spacious (Large)</option>
+            </select>
+        </div>
+    </div>
 
-    <div style="margin-top: 20px; display: flex; gap: 10px;">
-        <button onclick="addBlock('header')">+ Header</button>
-        <button onclick="addBlock('world_clock')">+ Clocks</button>
-        <button onclick="addBlock('progress_group')">+ Auto Progress</button>
-        <button onclick="addBlock('progress_custom')">+ Custom Progress (Life/Project)</button>
+    <h2>2. Widget Blocks</h2>
+    <div id="blocks-area"></div>
+
+    <div class="btn-row">
+        <button class="btn-add" onclick="addBlock('header')">+ Text Header</button>
+        <button class="btn-add" onclick="addBlock('world_clock')">+ World Clocks</button>
+        <button class="btn-add" onclick="addBlock('progress_group')">+ Auto Progress</button>
+        <button class="btn-add" onclick="addBlock('progress_custom')">+ Custom Bar</button>
     </div>
 
     <div class="output-box">
-        <h3>Your Embed URL</h3>
-        <p>Copy this link into Notion:</p>
-        <code id="result-url">Generate a link first...</code>
-        <button class="add" onclick="generateLink()">GENERATE LINK</button>
-        <button onclick="preview()">Preview in New Tab</button>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>3. Your Embed Link</h3>
+            <button onclick="preview()" style="background:white; color:#333; padding: 5px 10px; font-size:0.9rem;">Preview</button>
+        </div>
+        <p style="opacity: 0.8; font-size: 0.9rem; margin-top:0;">Copy the link below into Notion:</p>
+        <code id="result-url">Add blocks and click Generate...</code>
+        <button class="btn-gen" onclick="generateLink()">Update Link</button>
     </div>
 </div>
 
 <script>
-    let blocks = [];
+    // State
+    let settings = { use24h: false, theme: 'standard', fontSize: 'standard' };
+    let blocks = [
+        { type: 'header', text: 'My Dashboard' },
+        { type: 'world_clock', locations: [{label:'Home', timezone:'local'}] }
+    ];
 
-    // Default template to start
-    blocks.push({ type: 'header', text: 'My Time' });
-    blocks.push({ type: 'progress_group', items: [{type:'day', label:'Today'}] });
+    // Initialize
+    function init() {
+        renderBlocks();
+        generateLink();
+    }
 
-    function renderBuilder() {
-        const area = document.getElementById('builder-area');
+    // --- RENDERERS ---
+    function renderBlocks() {
+        const area = document.getElementById('blocks-area');
         area.innerHTML = '';
 
         blocks.forEach((block, index) => {
             const div = document.createElement('div');
-            div.className = 'section';
+            div.className = 'block-card';
             
-            let html = `<strong>Block ${index + 1}: ${block.type.toUpperCase().replace('_', ' ')}</strong>`;
+            let html = `<div class="block-header"><span class="block-type">${block.type.replace('_', ' ')}</span> <button class="btn-rem" onclick="removeBlock(${index})">Delete</button></div>`;
             
             if (block.type === 'header') {
-                html += `<label>Header Text</label><input type="text" value="${block.text}" onchange="updateBlock(${index}, 'text', this.value)">`;
+                html += `<label>Header Text</label><input type="text" value="${block.text}" oninput="updateBlock(${index}, 'text', this.value)">`;
             } 
-            
             else if (block.type === 'world_clock') {
-                html += `<label>Locations (JSON Format for now)</label>
-                <textarea style="width:100%; height: 60px;" onchange="updateBlockJSON(${index}, 'locations', this.value)">${JSON.stringify(block.locations || [{label:'Home', timezone:'local'}])}</textarea>
-                <small>Use 'local' or 'America/New_York', 'Europe/London' etc.</small>`;
+                html += `<label>Locations (JSON array)</label>
+                <textarea rows="3" onchange="updateBlockJSON(${index}, 'locations', this.value)">${JSON.stringify(block.locations)}</textarea>`;
             }
-
             else if (block.type === 'progress_group') {
-                html += `<label>Items (JSON Format)</label>
-                <textarea style="width:100%; height: 60px;" onchange="updateBlockJSON(${index}, 'items', this.value)">${JSON.stringify(block.items || [])}</textarea>
-                <small>Example: [{"type":"day", "label":"Today"}, {"type":"quarter", "label":"Q1"}]</small>`;
+                html += `<label>Items (JSON array)</label>
+                <textarea rows="3" onchange="updateBlockJSON(${index}, 'items', this.value)">${JSON.stringify(block.items)}</textarea>`;
             }
-
             else if (block.type === 'progress_custom') {
-                html += `<label>Label</label><input type="text" value="${block.label || ''}" onchange="updateBlock(${index}, 'label', this.value)">`;
-                html += `<label>Start Date (YYYY-MM-DD)</label><input type="date" value="${block.start || ''}" onchange="updateBlock(${index}, 'start', this.value)">`;
-                html += `<label>End Date (YYYY-MM-DD)</label><input type="date" value="${block.end || ''}" onchange="updateBlock(${index}, 'end', this.value)">`;
+                html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)">`;
+                html += `<div style="display:flex; gap:10px;">
+                    <div style="flex:1"><label>Start</label><input type="date" value="${block.start}" oninput="updateBlock(${index}, 'start', this.value)"></div>
+                    <div style="flex:1"><label>End</label><input type="date" value="${block.end}" oninput="updateBlock(${index}, 'end', this.value)"></div>
+                </div>`;
             }
 
-            html += `<br><button class="remove" onclick="removeBlock(${index})">Remove Block</button>`;
             div.innerHTML = html;
             area.appendChild(div);
         });
     }
 
-    // --- Actions ---
+    // --- ACTIONS ---
+    window.updateSettings = () => {
+        settings.use24h = document.getElementById('set-time').value === '24';
+        settings.theme = document.getElementById('set-theme').value;
+        settings.fontSize = document.getElementById('set-font').value;
+        generateLink();
+    };
 
     window.addBlock = (type) => {
         if(type === 'header') blocks.push({type, text: 'New Header'});
-        if(type === 'world_clock') blocks.push({type, locations: [{label:'Home', timezone:'local'}]});
-        if(type === 'progress_group') blocks.push({type, items: [{type:'month', label:'This Month'}, {type:'quarter', label:'Quarter'}]});
-        if(type === 'progress_custom') blocks.push({type, label: 'Project X', start: '2023-01-01', end: '2023-12-31'});
-        renderBuilder();
+        if(type === 'world_clock') blocks.push({type, locations: [{label:'New York', timezone:'America/New_York'}]});
+        if(type === 'progress_group') blocks.push({type, items: [{type:'month', label:'This Month'}, {type:'year', label:'This Year'}]});
+        if(type === 'progress_custom') blocks.push({type, label: 'Project', start: '2024-01-01', end: '2024-12-31'});
+        renderBlocks();
+        generateLink();
     };
 
-    window.removeBlock = (index) => {
-        blocks.splice(index, 1);
-        renderBuilder();
-    };
+    window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); generateLink(); };
 
-    window.updateBlock = (index, key, value) => {
-        blocks[index][key] = value;
-    };
-
-    window.updateBlockJSON = (index, key, value) => {
-        try {
-            blocks[index][key] = JSON.parse(value);
-        } catch(e) {
-            alert("Invalid JSON format");
-        }
+    window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; generateLink(); };
+    
+    window.updateBlockJSON = (idx, key, val) => {
+        try { blocks[idx][key] = JSON.parse(val); generateLink(); } 
+        catch(e) { /* Validating JSON while typing is annoying, just ignore errors */ }
     };
 
     window.generateLink = () => {
-        const json = JSON.stringify(blocks);
-        // Base64 Encode
-        const encoded = btoa(json);
-        // Get current GitHub URL path, swap admin.html for index.html
+        // Construct the full object
+        const fullConfig = { settings: settings, blocks: blocks };
+        const encoded = btoa(JSON.stringify(fullConfig));
+        
+        // URL Construction
         let baseUrl = window.location.href.replace('admin.html', 'index.html');
-        // Handle case where user is running this locally or cleaner URL
-        if(!baseUrl.includes('index.html')) baseUrl = baseUrl.split('?')[0].split('#')[0];
-        if(baseUrl.endsWith('/')) baseUrl += 'index.html';
+        // Clean URL if not ending in .html (e.g. clean folder paths)
+        if(!baseUrl.includes('index.html')) baseUrl = baseUrl.split('?')[0].split('#')[0].replace(/\/$/, "") + '/index.html';
         
         const finalUrl = `${baseUrl}#${encoded}`;
         document.getElementById('result-url').innerText = finalUrl;
         return finalUrl;
     };
 
-    window.preview = () => {
-        const url = generateLink();
-        window.open(url, '_blank');
-    };
+    window.preview = () => { window.open(generateLink(), '_blank'); };
 
-    // Initial Render
-    renderBuilder();
+    init();
 </script>
 
 </body>
