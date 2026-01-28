@@ -102,13 +102,11 @@
     // --- INITIALIZATION ---
     function init() {
         try {
-            // Get data after the '#'
             const hash = window.location.hash.substring(1);
             if(hash) {
                 const data = JSON.parse(atob(hash));
                 if(data.settings) {
                     settings = data.settings;
-                    // Pre-fill inputs
                     document.getElementById('set-time').value = settings.use24h ? '24' : '12';
                     document.getElementById('set-theme').value = settings.theme;
                     document.getElementById('set-font').value = settings.fontSize;
@@ -117,10 +115,10 @@
             } else {
                 blocks = [{ type: 'header', text: 'New Dashboard' }];
             }
-        } catch(e) { console.log('Starting fresh'); }
+        } catch(e) { console.log('New Load'); }
 
         renderBlocks();
-        generateLink(false); // Generate initial link without flashing button
+        generateLink(false);
     }
 
     // --- RENDERER ---
@@ -156,7 +154,15 @@
             else if (block.type === 'progress_custom') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Start</label><input type="date" value="${block.start}" oninput="updateBlock(${index}, 'start', this.value)"></div><div class="col"><label>End</label><input type="date" value="${block.end}" oninput="updateBlock(${index}, 'end', this.value)"></div></div>`;
             else if (block.type === 'progress_cycle') html += `<label>Cycle Name</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Anchor Date</label><input type="date" value="${block.anchor}" oninput="updateBlock(${index}, 'anchor', this.value)"></div><div class="col"><label>Length (Days)</label><input type="number" value="${block.days}" oninput="updateBlock(${index}, 'days', this.value)"></div></div>`;
             else if (block.type === 'countdown') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Date</label><input type="date" value="${block.date}" oninput="updateBlock(${index}, 'date', this.value)"></div><div class="col"><label>Style</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="detailed" ${block.style=='detailed'?'selected':''}>Detailed</option><option value="days" ${block.style=='days'?'selected':''}>Days Only</option></select></div></div>`;
-            else if (block.type === 'timer') html += `<label>Timer Name</label><input type="text" value="${block.label || 'Timer'}" oninput="updateBlock(${index}, 'label', this.value)">`;
+            
+            // --- UPDATED TIMER BLOCK ---
+            else if (block.type === 'timer') {
+                html += `<label>Timer Name</label><input type="text" value="${block.label || 'Timer'}" oninput="updateBlock(${index}, 'label', this.value)">`;
+                html += `<div class="row">
+                    <div class="col"><label>Hours</label><input type="number" min="0" value="${block.hours || 0}" oninput="updateBlock(${index}, 'hours', this.value)"></div>
+                    <div class="col"><label>Minutes</label><input type="number" min="0" value="${block.minutes || 0}" oninput="updateBlock(${index}, 'minutes', this.value)"></div>
+                </div>`;
+            }
 
             div.innerHTML = html;
             area.appendChild(div);
@@ -191,8 +197,10 @@
         if(type === 'progress_group') newBlock.items = [{type:'month', label:'Month'}];
         if(type === 'progress_custom') { newBlock.label = 'Project'; newBlock.start = new Date().toISOString().split('T')[0]; newBlock.end = '2025-12-31'; }
         if(type === 'countdown') { newBlock.label = 'Event'; newBlock.date = '2025-01-01'; newBlock.style = 'detailed'; }
-        if(type === 'timer') { newBlock.label = 'Focus'; }
         if(type === 'progress_cycle') { newBlock.label = 'Cycle'; newBlock.anchor = '2024-01-01'; newBlock.days = '30'; }
+        
+        // UPDATED TIMER DEFAULT
+        if(type === 'timer') { newBlock.label = 'Focus'; newBlock.hours = 0; newBlock.minutes = 25; }
 
         blocks.push(newBlock); renderBlocks(); generateLink(false);
     };
@@ -208,51 +216,32 @@
         generateLink(false); 
     };
 
-    // --- LINK GENERATION (FIXED LOGIC) ---
     window.generateLink = (flashButton) => {
         try {
             const fullConfig = { settings: settings, blocks: blocks };
             const jsonString = JSON.stringify(fullConfig);
-            
-            // Basic Base64 encoding (Standard)
             const encoded = btoa(jsonString);
             
-            // 1. Get current URL base. 
-            // We split by '#' to remove OLD hash.
-            // We split by '?' to remove OLD params.
-            let baseUrl = window.location.href.split('#')[0].split('?')[0];
+            let url = window.location.href.split('#')[0].split('?')[0];
+            if (url.includes('admin.html')) url = url.replace('admin.html', 'index.html');
+            else if (url.endsWith('/')) url += 'index.html';
+            else if (!url.endsWith('index.html')) url += '/index.html';
 
-            // 2. Ensure we point to index.html, not admin.html
-            // This regex replaces "admin.html" or "admin" with "index.html"
-            if (baseUrl.includes('admin.html')) {
-                baseUrl = baseUrl.replace('admin.html', 'index.html');
-            } else if (baseUrl.endsWith('/')) {
-                baseUrl += 'index.html';
-            } else if (!baseUrl.endsWith('index.html')) {
-                // Case: /repo-name (no file specified)
-                baseUrl += '/index.html';
-            }
-
-            // 3. Combine
-            const finalUrl = `${baseUrl}#${encoded}`;
+            const finalUrl = `${url}#${encoded}`;
             document.getElementById('result-url').innerText = finalUrl;
             
-            // Visual feedback
             if(flashButton) {
                 const btn = document.getElementById('gen-btn');
                 const originalText = btn.innerText;
                 btn.innerText = "LINK UPDATED!";
                 btn.style.background = "#2ecc71";
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.background = "#27ae60";
-                }, 1000);
+                setTimeout(() => { btn.innerText = originalText; btn.style.background = "#27ae60"; }, 1000);
             }
 
             return finalUrl;
         } catch (e) {
             console.error(e);
-            alert("Error: " + e.message + "\n\nNote: Emojis and special characters are not supported yet.");
+            alert("Error generating link.");
         }
     };
 
