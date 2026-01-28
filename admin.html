@@ -40,7 +40,7 @@
 
         /* Buttons */
         .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;}
-        button { padding: 10px 16px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
+        button { padding: 10px 16px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;}
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         button:active { transform: translateY(1px); }
 
@@ -54,10 +54,16 @@
         .btn-timer  { background: #fadbd8; color: #78281f; border: 1px solid #e6b0aa; }     
         
         .btn-rem { background: transparent; color: #c0392b; border: 1px solid #c0392b; padding: 4px 10px; font-size: 0.75rem; }
-        .btn-gen { background: #27ae60; color: white; width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px; transition: background 0.2s;}
-
+        
+        /* Action Area */
         .output-box { margin-top: 30px; background: #2c3e50; color: white; padding: 20px; border-radius: 8px; }
         code { word-break: break-all; display: block; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;}
+        
+        /* Bottom Action Buttons */
+        .action-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-gen { background: #27ae60; color: white; flex: 1; font-size: 1rem; padding: 12px; }
+        .btn-copy { background: #34495e; color: white; flex: 1; font-size: 1rem; padding: 12px; border: 1px solid #485f78; }
+
     </style>
 </head>
 <body>
@@ -91,7 +97,11 @@
             <button onclick="preview()" style="background:white; color:#333; padding: 5px 10px; font-size:0.8rem;">Open Preview</button>
         </div>
         <code id="result-url">...</code>
-        <button id="gen-btn" class="btn-gen" onclick="generateLink(true)">UPDATE LINK</button>
+        
+        <div class="action-buttons">
+            <button id="gen-btn" class="btn-gen" onclick="generateLink(true)">UPDATE LINK</button>
+            <button id="copy-btn" class="btn-copy" onclick="copyToClipboard()">COPY LINK</button>
+        </div>
     </div>
 </div>
 
@@ -154,8 +164,6 @@
             else if (block.type === 'progress_custom') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Start</label><input type="date" value="${block.start}" oninput="updateBlock(${index}, 'start', this.value)"></div><div class="col"><label>End</label><input type="date" value="${block.end}" oninput="updateBlock(${index}, 'end', this.value)"></div></div>`;
             else if (block.type === 'progress_cycle') html += `<label>Cycle Name</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Anchor Date</label><input type="date" value="${block.anchor}" oninput="updateBlock(${index}, 'anchor', this.value)"></div><div class="col"><label>Length (Days)</label><input type="number" value="${block.days}" oninput="updateBlock(${index}, 'days', this.value)"></div></div>`;
             else if (block.type === 'countdown') html += `<label>Label</label><input type="text" value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><label>Date</label><input type="date" value="${block.date}" oninput="updateBlock(${index}, 'date', this.value)"></div><div class="col"><label>Style</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="detailed" ${block.style=='detailed'?'selected':''}>Detailed</option><option value="days" ${block.style=='days'?'selected':''}>Days Only</option></select></div></div>`;
-            
-            // --- UPDATED TIMER BLOCK ---
             else if (block.type === 'timer') {
                 html += `<label>Timer Name</label><input type="text" value="${block.label || 'Timer'}" oninput="updateBlock(${index}, 'label', this.value)">`;
                 html += `<div class="row">
@@ -198,8 +206,6 @@
         if(type === 'progress_custom') { newBlock.label = 'Project'; newBlock.start = new Date().toISOString().split('T')[0]; newBlock.end = '2025-12-31'; }
         if(type === 'countdown') { newBlock.label = 'Event'; newBlock.date = '2025-01-01'; newBlock.style = 'detailed'; }
         if(type === 'progress_cycle') { newBlock.label = 'Cycle'; newBlock.anchor = '2024-01-01'; newBlock.days = '30'; }
-        
-        // UPDATED TIMER DEFAULT
         if(type === 'timer') { newBlock.label = 'Focus'; newBlock.hours = 0; newBlock.minutes = 25; }
 
         blocks.push(newBlock); renderBlocks(); generateLink(false);
@@ -208,14 +214,9 @@
     window.removeBlock = (idx) => { blocks.splice(idx, 1); renderBlocks(); generateLink(false); };
     window.updateBlock = (idx, key, val) => { blocks[idx][key] = val; generateLink(false); };
     window.updateBlockJSON = (idx, key, val) => { try { blocks[idx][key] = JSON.parse(val); generateLink(false); } catch(e){} };
-    
-    window.updateSettings = () => { 
-        settings.use24h = document.getElementById('set-time').value === '24'; 
-        settings.theme = document.getElementById('set-theme').value; 
-        settings.fontSize = document.getElementById('set-font').value; 
-        generateLink(false); 
-    };
+    window.updateSettings = () => { settings.use24h = document.getElementById('set-time').value === '24'; settings.theme = document.getElementById('set-theme').value; settings.fontSize = document.getElementById('set-font').value; generateLink(false); };
 
+    // --- URL LOGIC ---
     window.generateLink = (flashButton) => {
         try {
             const fullConfig = { settings: settings, blocks: blocks };
@@ -237,12 +238,29 @@
                 btn.style.background = "#2ecc71";
                 setTimeout(() => { btn.innerText = originalText; btn.style.background = "#27ae60"; }, 1000);
             }
-
             return finalUrl;
         } catch (e) {
             console.error(e);
             alert("Error generating link.");
         }
+    };
+
+    // --- NEW COPY FUNCTION ---
+    window.copyToClipboard = () => {
+        const text = document.getElementById('result-url').innerText;
+        if(text.includes("...")) {
+            alert("Please add blocks to generate a link first.");
+            return;
+        }
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById('copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "COPIED!";
+            btn.style.background = "#2c3e50"; // Keep same color or slightly lighter
+            setTimeout(() => {
+                btn.innerText = originalText;
+            }, 2000);
+        });
     };
 
     window.preview = () => { window.open(generateLink(false), '_blank'); };
