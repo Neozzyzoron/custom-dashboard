@@ -9,17 +9,22 @@
         
         /* Dragging Styles */
         .block-card { 
-            background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #999; 
+            background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; 
+            border-left: 6px solid #999; /* Default Grey */
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .block-card.dragging { opacity: 0.5; border: 2px dashed #666; }
         .drag-handle { cursor: grab; padding: 5px 10px; font-size: 1.2rem; color: #aaa; user-select: none; }
         .drag-handle:hover { color: #333; }
 
-        /* Block Colors */
-        .block-card.type-countdown { border-left-color: #3498db; }
-        .block-card.type-timer { border-left-color: #e74c3c; }
-        .block-card.type-progress_cycle { border-left-color: #8e44ad; } 
+        /* Block Card Colors (Matching Buttons) */
+        .block-card.type-header         { border-left-color: #bdc3c7; } /* Grey */
+        .block-card.type-world_clock    { border-left-color: #1abc9c; } /* Teal */
+        .block-card.type-progress_group { border-left-color: #e67e22; } /* Orange */
+        .block-card.type-progress_custom{ border-left-color: #f1c40f; } /* Gold */
+        .block-card.type-progress_cycle { border-left-color: #9b59b6; } /* Purple */
+        .block-card.type-countdown      { border-left-color: #3498db; } /* Blue */
+        .block-card.type-timer          { border-left-color: #e74c3c; } /* Red */
 
         .block-header { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; }
         .block-type { font-weight: bold; text-transform: uppercase; font-size: 0.8rem; color: #666; background: #eee; padding: 3px 6px; border-radius: 4px; flex-grow: 1; }
@@ -33,27 +38,21 @@
 
         /* Buttons */
         .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;}
-        button { padding: 10px 16px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; }
-        
-        /* Specific Button Colors */
-        .btn-add { background: #e3e2e0; color: #333; border: 1px solid #ccc; }
-        .btn-count { background: #d4e6f1; color: #154360; border: 1px solid #a9cce3; } 
-        .btn-timer { background: #fadbd8; color: #78281f; border: 1px solid #e6b0aa; } 
-        .btn-cycle { background: #e8daef; color: #5b2c6f; border: 1px solid #d2b4de; } 
+        button { padding: 10px 16px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+
+        /* COLOR CODED BUTTONS */
+        .btn-header { background: #eaeded; color: #555; border: 1px solid #bdc3c7; }        /* Grey */
+        .btn-time   { background: #d1f2eb; color: #0e6251; border: 1px solid #a2d9ce; }     /* Teal */
+        .btn-auto   { background: #fdebd0; color: #935116; border: 1px solid #f5cba7; }     /* Orange */
+        .btn-custom { background: #fcf3cf; color: #7d6608; border: 1px solid #f9e79f; }     /* Gold */
+        .btn-cycle  { background: #ebdef0; color: #5b2c6f; border: 1px solid #d2b4de; }     /* Purple */
+        .btn-count  { background: #d6eaf8; color: #154360; border: 1px solid #a9cce3; }     /* Blue */
+        .btn-timer  { background: #fadbd8; color: #78281f; border: 1px solid #e6b0aa; }     /* Red */
         
         .btn-rem { background: transparent; color: #c0392b; border: 1px solid #c0392b; padding: 4px 10px; font-size: 0.75rem; }
         .btn-gen { background: #27ae60; color: white; width: 100%; font-size: 1rem; padding: 12px; margin-top: 10px;}
 
         .output-box { margin-top: 30px; background: #2c3e50; color: white; padding: 20px; border-radius: 8px; }
-        code { word-break: break-all; display: block; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;}
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1>Notion Widget Admin</h1>
-
-    <h2>1. Visual Settings</h2>
-    <div class="settings-grid">
-        <div><label>Time</label><select id="set-time" onchange="updateSettings()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
-        <div><label>Theme</label><select id="set-theme" onchange="
+        code { word-break: break-all; display: block; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-family
