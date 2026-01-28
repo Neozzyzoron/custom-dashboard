@@ -29,9 +29,23 @@
             margin: 0; padding: 1.25rem; 
             box-sizing: border-box;
             font-size: var(--base-size);
+            position: relative; /* For Edit Button positioning */
+            min-height: 100vh;
         }
         #dashboard { display: flex; flex-direction: column; gap: 1.5rem; max-width: 600px; margin: 0 auto; }
         
+        /* Edit Button (Hidden by default, shown on hover) */
+        #edit-btn {
+            position: fixed; bottom: 10px; right: 10px;
+            background: var(--text-color); color: var(--bg-color);
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s; cursor: pointer;
+            text-decoration: none; font-size: 14px; z-index: 999;
+        }
+        body:hover #edit-btn { opacity: 0.3; }
+        #edit-btn:hover { opacity: 1; }
+
         /* Themes */
         .theme-card .widget-block { border: 1px solid var(--accent-color); padding: 1rem; border-radius: 8px; }
         .theme-minimal .clock-time, .theme-minimal .countdown-time { font-weight: 400 !important; }
@@ -62,6 +76,7 @@
 </head>
 <body>
     <div id="dashboard"></div>
+    <a id="edit-btn" href="#" target="_blank" title="Edit this widget">✎</a>
 
     <script>
         function getConfig() {
@@ -82,6 +97,13 @@
                 container.innerHTML = `<div class="error">No settings found.<br>Use admin.html to generate a link.</div>`;
                 return;
             }
+
+            // SETUP EDIT LINK
+            const editBtn = document.getElementById('edit-btn');
+            // Points to admin.html with the same hash
+            const currentUrl = window.location.href;
+            const adminUrl = currentUrl.replace('index.html', 'admin.html');
+            editBtn.href = adminUrl;
 
             const settings = data.settings || {};
             document.body.className = `theme-${settings.theme || 'standard'}`;
@@ -108,6 +130,7 @@
             updateDynamicElements(data.blocks, settings);
         }
 
+        // --- RENDERERS ---
         function renderHeader(data, parent) {
             const el = document.createElement('div');
             el.className = 'widget-header';
@@ -131,18 +154,13 @@
         function renderCustomBar(data, parent) {
             parent.appendChild(createBarElement(data.label, new Date(data.start), new Date(data.end)));
         }
-        
         function renderCycleProgress(data, parent) {
             const wrapper = document.createElement('div');
             wrapper.className = 'progress-wrapper';
             wrapper.id = `cycle-${parent.id}`;
-            wrapper.innerHTML = `
-                <div class="progress-meta"><span id="cycle-label-${parent.id}">${data.label}</span><span id="cycle-pct-${parent.id}">0%</span></div>
-                <div class="progress-bg"><div class="progress-fill" id="cycle-bar-${parent.id}" style="width: 0%"></div></div>
-            `;
+            wrapper.innerHTML = `<div class="progress-meta"><span id="cycle-label-${parent.id}">${data.label}</span><span id="cycle-pct-${parent.id}">0%</span></div><div class="progress-bg"><div class="progress-fill" id="cycle-bar-${parent.id}" style="width: 0%"></div></div>`;
             parent.appendChild(wrapper);
         }
-
         function renderCountdown(data, parent) {
             const row = document.createElement('div');
             row.className = 'countdown-row';
@@ -156,6 +174,7 @@
             parent.appendChild(wrapper);
         }
 
+        // --- MATH & LOGIC ---
         function updateDynamicElements(blocks, settings) {
             const now = new Date();
             const use24h = settings.use24h === true;
@@ -188,18 +207,14 @@
                         }
                     }
                 }
-                // Cycle Progress (UPDATED TO DAYS)
+                // Cycle
                 if (block.type === 'progress_cycle') {
                     const anchor = new Date(block.anchor);
-                    // Use 'days' from config, default to 1 if missing/zero
                     const days = parseFloat(block.days) || 1; 
                     const duration = days * 24 * 60 * 60 * 1000;
-                    
                     let elapsed = now - anchor;
-                    
-                    if (elapsed < 0) {
-                        updateCycleUI(bIdx, 0); 
-                    } else {
+                    if (elapsed < 0) updateCycleUI(bIdx, 0); 
+                    else {
                         const currentCycleElapsed = elapsed % duration;
                         const percent = (currentCycleElapsed / duration) * 100;
                         updateCycleUI(bIdx, percent);
