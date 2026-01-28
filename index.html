@@ -29,12 +29,11 @@
             margin: 0; padding: 1.25rem; 
             box-sizing: border-box;
             font-size: var(--base-size);
-            min-height: 100vh; /* Ensure hover works for edit button */
+            min-height: 100vh;
             position: relative;
         }
         #dashboard { display: flex; flex-direction: column; gap: 1.5rem; max-width: 600px; margin: 0 auto; }
         
-        /* Edit Button (Hidden by default, shown on hover) */
         #edit-btn {
             position: fixed; bottom: 10px; right: 10px;
             background: var(--text-color); color: var(--bg-color);
@@ -47,12 +46,10 @@
         body:hover #edit-btn { opacity: 0.4; }
         #edit-btn:hover { opacity: 1; }
 
-        /* Themes */
         .theme-card .widget-block { border: 1px solid var(--accent-color); padding: 1rem; border-radius: 8px; }
         .theme-minimal .clock-time, .theme-minimal .countdown-time { font-weight: 400 !important; }
         .theme-minimal .progress-bg { height: 4px !important; }
 
-        /* Styles */
         .widget-header { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 0.5rem; font-weight: 600; }
         .clock-row { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--accent-color); padding: 0.5rem 0; }
         .clock-row:last-child { border-bottom: none; }
@@ -70,7 +67,7 @@
         .timer-container { text-align: center; padding: 10px; background: var(--accent-color); border-radius: 8px; }
         .timer-display { font-size: 2em; font-weight: 700; font-family: "SF Mono", monospace; margin: 10px 0; }
         .timer-controls { display: flex; gap: 10px; justify-content: center; }
-        .timer-btn { background: var(--bg-color); color: var(--text-color); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: 600; }
+        .timer-btn { background: var(--bg-color); color: var(--text-color); border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: 600; }
         .timer-btn:hover { opacity: 0.8; }
 
         .error { color: #eb5757; font-size: 0.9em; text-align: center; padding: 20px;}
@@ -81,7 +78,6 @@
     <a id="edit-btn" href="#" target="_blank" title="Edit this widget">✎</a>
 
     <script>
-        // --- CONFIG PARSER ---
         function getConfig() {
             try {
                 const hash = window.location.hash.substring(1); 
@@ -101,20 +97,16 @@
                 return;
             }
 
-            // Update Edit Button Link
             const editBtn = document.getElementById('edit-btn');
             const currentUrl = window.location.href;
-            // Assumes admin.html is in the same folder
             const adminUrl = currentUrl.replace('index.html', 'admin.html');
             editBtn.href = adminUrl;
 
-            // Apply Global Settings
             const settings = data.settings || {};
             document.body.className = `theme-${settings.theme || 'standard'}`;
             if(settings.fontSize === 'small') document.documentElement.style.setProperty('--base-size', '14px');
             if(settings.fontSize === 'large') document.documentElement.style.setProperty('--base-size', '18px');
 
-            // Build DOM only if empty (preserves Timer state/input focus)
             if(container.innerHTML === '') {
                 data.blocks.forEach((block, index) => {
                     const blockDiv = document.createElement('div');
@@ -132,12 +124,10 @@
                     container.appendChild(blockDiv);
                 });
             }
-            
-            // Update Numbers
             updateDynamicElements(data.blocks, settings);
         }
 
-        // --- RENDERERS (Static HTML) ---
+        // --- RENDERERS ---
         function renderHeader(data, parent) {
             const el = document.createElement('div');
             el.className = 'widget-header';
@@ -174,20 +164,34 @@
             row.innerHTML = `<span class="countdown-label">${data.label}</span><span class="countdown-time" id="cnt-${parent.id}">Loading...</span>`;
             parent.appendChild(row);
         }
+        
+        // --- UPDATED TIMER RENDERER ---
         function renderTimer(data, parent, id) {
+            const hrs = parseInt(data.hours) || 0;
+            const mins = parseInt(data.minutes) || 0;
+            // Calculate total minutes
+            const totalMins = (hrs * 60) + mins;
+            const displayTime = (hrs > 0) ? `${hrs}h ${mins}m` : `${mins}m`;
+
             const wrapper = document.createElement('div');
             wrapper.className = 'timer-container';
-            wrapper.innerHTML = `<div style="font-size:0.8em; opacity:0.7; text-transform:uppercase;">${data.label || 'Timer'}</div><div class="timer-display" id="timer-display-${id}">00:00</div><div class="timer-controls"><button class="timer-btn" onclick="startTimer(${id}, 25)">25m</button><button class="timer-btn" onclick="startTimer(${id}, 5)">5m</button><button class="timer-btn" style="color:#eb5757" onclick="stopTimer(${id})">Stop</button></div>`;
+            wrapper.innerHTML = `
+                <div style="font-size:0.8em; opacity:0.7; text-transform:uppercase;">${data.label || 'Timer'}</div>
+                <div class="timer-display" id="timer-display-${id}">00:00</div>
+                <div class="timer-controls">
+                    <button class="timer-btn" onclick="startTimer(${id}, ${totalMins})">Start ${displayTime}</button>
+                    <button class="timer-btn" style="color:#eb5757" onclick="stopTimer(${id})">Stop</button>
+                </div>
+            `;
             parent.appendChild(wrapper);
         }
 
-        // --- DYNAMIC UPDATES (Loop) ---
+        // --- UPDATES ---
         function updateDynamicElements(blocks, settings) {
             const now = new Date();
             const use24h = settings.use24h === true;
 
             blocks.forEach((block, bIdx) => {
-                // Clocks
                 if (block.type === 'world_clock') {
                     block.locations.forEach((loc, lIdx) => {
                         const el = document.getElementById(`clock-block-${bIdx}-${lIdx}`);
@@ -200,7 +204,6 @@
                         }
                     });
                 }
-                // Countdowns
                 if (block.type === 'countdown') {
                     const el = document.getElementById(`cnt-block-${bIdx}`);
                     if(el) {
@@ -214,22 +217,18 @@
                         }
                     }
                 }
-                // Recurring Cycle
                 if (block.type === 'progress_cycle') {
                     const anchor = new Date(block.anchor);
                     const days = parseFloat(block.days) || 1; 
-                    const duration = days * 24 * 60 * 60 * 1000; // Convert days to ms
+                    const duration = days * 24 * 60 * 60 * 1000;
                     let elapsed = now - anchor;
-                    
-                    if (elapsed < 0) {
-                        updateCycleUI(bIdx, 0); 
-                    } else {
+                    if (elapsed < 0) updateCycleUI(bIdx, 0); 
+                    else {
                         const currentCycleElapsed = elapsed % duration;
                         const percent = (currentCycleElapsed / duration) * 100;
                         updateCycleUI(bIdx, percent);
                     }
                 }
-                // Timers
                 if (block.type === 'timer') updateTimerDisplay(bIdx);
             });
         }
@@ -243,19 +242,26 @@
             }
         }
 
-        // --- HELPERS ---
+        // --- TIMER LOGIC (UPDATED) ---
         window.startTimer = (id, m) => { localStorage.setItem(`notion_timer_${id}`, new Date().getTime() + (m * 60000)); updateTimerDisplay(id); };
         window.stopTimer = (id) => { localStorage.removeItem(`notion_timer_${id}`); updateTimerDisplay(id); };
+        
         function updateTimerDisplay(id) {
             const el = document.getElementById(`timer-display-${id}`);
             const end = localStorage.getItem(`notion_timer_${id}`);
             if (!end) { el.innerText = "00:00"; return; }
+            
             const distance = end - new Date().getTime();
             if (distance < 0) { el.innerText = "Done!"; localStorage.removeItem(`notion_timer_${id}`); return; }
-            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            // Calculate total minutes (even if > 60)
+            const m = Math.floor(distance / 60000); 
+            const s = Math.floor((distance % 60000) / 1000);
+            
             el.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
+
+        // --- HELPERS ---
         function createBarElement(label, start, end) {
             const now = new Date();
             let percent = 0;
@@ -277,7 +283,6 @@
             return null;
         }
 
-        // Start Loop
         render();
         setInterval(() => { const d = getConfig(); if(d) updateDynamicElements(d.blocks, d.settings); }, 1000);
     </script>
