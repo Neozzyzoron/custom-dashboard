@@ -177,4 +177,109 @@
         function renderTimer(data, parent, id) {
             const wrapper = document.createElement('div');
             wrapper.className = 'timer-container';
-            wrapper.innerHTML = `<div style="font-size:0.8em; opacity:0.7; text-transform:uppercase;">${data.label || 'Timer'}</div><div class="timer-display" id="timer-display-${id}">00:00</div><div class="timer-controls"><button class="timer-btn" onclick="startTimer(${id}, 25)">25m</button><button class="
+            wrapper.innerHTML = `<div style="font-size:0.8em; opacity:0.7; text-transform:uppercase;">${data.label || 'Timer'}</div><div class="timer-display" id="timer-display-${id}">00:00</div><div class="timer-controls"><button class="timer-btn" onclick="startTimer(${id}, 25)">25m</button><button class="timer-btn" onclick="startTimer(${id}, 5)">5m</button><button class="timer-btn" style="color:#eb5757" onclick="stopTimer(${id})">Stop</button></div>`;
+            parent.appendChild(wrapper);
+        }
+
+        // --- DYNAMIC UPDATES (Loop) ---
+        function updateDynamicElements(blocks, settings) {
+            const now = new Date();
+            const use24h = settings.use24h === true;
+
+            blocks.forEach((block, bIdx) => {
+                // Clocks
+                if (block.type === 'world_clock') {
+                    block.locations.forEach((loc, lIdx) => {
+                        const el = document.getElementById(`clock-block-${bIdx}-${lIdx}`);
+                        if(el) {
+                            const options = { hour: use24h ? '2-digit' : 'numeric', minute: '2-digit', hour12: !use24h };
+                            if (loc.timezone && loc.timezone !== 'local') options.timeZone = loc.timezone;
+                            let timeStr = now.toLocaleTimeString([], options);
+                            if(!use24h) timeStr = timeStr.replace(' ', '');
+                            el.innerText = timeStr;
+                        }
+                    });
+                }
+                // Countdowns
+                if (block.type === 'countdown') {
+                    const el = document.getElementById(`cnt-block-${bIdx}`);
+                    if(el) {
+                        const diff = new Date(block.date) - now;
+                        if (diff <= 0) el.innerText = "Done";
+                        else {
+                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            if (block.style === 'days') el.innerText = `${days}d`;
+                            else el.innerText = `${days}d ${hours}h`;
+                        }
+                    }
+                }
+                // Recurring Cycle
+                if (block.type === 'progress_cycle') {
+                    const anchor = new Date(block.anchor);
+                    const days = parseFloat(block.days) || 1; 
+                    const duration = days * 24 * 60 * 60 * 1000; // Convert days to ms
+                    let elapsed = now - anchor;
+                    
+                    if (elapsed < 0) {
+                        updateCycleUI(bIdx, 0); 
+                    } else {
+                        const currentCycleElapsed = elapsed % duration;
+                        const percent = (currentCycleElapsed / duration) * 100;
+                        updateCycleUI(bIdx, percent);
+                    }
+                }
+                // Timers
+                if (block.type === 'timer') updateTimerDisplay(bIdx);
+            });
+        }
+
+        function updateCycleUI(id, percent) {
+            const bar = document.getElementById(`cycle-bar-block-${id}`);
+            const txt = document.getElementById(`cycle-pct-block-${id}`);
+            if(bar && txt) {
+                bar.style.width = `${percent}%`;
+                txt.innerText = `${percent.toFixed(1)}%`;
+            }
+        }
+
+        // --- HELPERS ---
+        window.startTimer = (id, m) => { localStorage.setItem(`notion_timer_${id}`, new Date().getTime() + (m * 60000)); updateTimerDisplay(id); };
+        window.stopTimer = (id) => { localStorage.removeItem(`notion_timer_${id}`); updateTimerDisplay(id); };
+        function updateTimerDisplay(id) {
+            const el = document.getElementById(`timer-display-${id}`);
+            const end = localStorage.getItem(`notion_timer_${id}`);
+            if (!end) { el.innerText = "00:00"; return; }
+            const distance = end - new Date().getTime();
+            if (distance < 0) { el.innerText = "Done!"; localStorage.removeItem(`notion_timer_${id}`); return; }
+            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((distance % (1000 * 60)) / 1000);
+            el.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+        function createBarElement(label, start, end) {
+            const now = new Date();
+            let percent = 0;
+            if (now > end) percent = 100;
+            else if (now > start) percent = ((now - start) / (end - start)) * 100;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'progress-wrapper';
+            wrapper.innerHTML = `<div class="progress-meta"><span>${label}</span><span>${percent.toFixed(1)}%</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${percent}%"></div></div>`;
+            return wrapper;
+        }
+        function getDatesForType(type) {
+            const now = new Date();
+            const y = now.getFullYear(), m = now.getMonth();
+            if (type === 'day') return { start: new Date(y, m, now.getDate()), end: new Date(y, m, now.getDate(), 23, 59, 59) };
+            if (type === 'week') { const d = now.getDay(), diff = now.getDate() - d + (d === 0 ? -6 : 1); const s = new Date(now.setDate(diff)); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(s.getDate() + 7); return { start: s, end: e }; }
+            if (type === 'month') return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
+            if (type === 'quarter') { const q = Math.floor(m / 3); return { start: new Date(y, q * 3, 1), end: new Date(y, (q + 1) * 3, 1) }; }
+            if (type === 'year') return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
+            return null;
+        }
+
+        // Start Loop
+        render();
+        setInterval(() => { const d = getConfig(); if(d) updateDynamicElements(d.blocks, d.settings); }, 1000);
+    </script>
+</body>
+</html>
