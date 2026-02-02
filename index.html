@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Widget V20</title>
+    <title>Notion Widget V21</title>
     <style>
         :root {
             --bg-color: #FFFFFF; --text-color: #37352F; --accent-color: #E3E2E0;
@@ -67,6 +67,13 @@
         /* SPACER */
         .spacer-line { width: 100%; border-bottom: 1px solid var(--accent-color); opacity: 0.5; }
         .spacer-dashed { border-style: dashed; } .spacer-dotted { border-style: dotted; } .spacer-solid { border-style: solid; } .spacer-none { border: none; }
+        
+        /* CLOCK & COUNTDOWN */
+        .clock-time { font-family: monospace; font-weight: bold; }
+        .countdown-time { font-family: monospace; font-weight: bold; background: var(--accent-color); padding: 2px 5px; border-radius: 4px; }
+        
+        /* CYCLE RESET BUTTON */
+        .cycle-reset-btn { background:none; border:1px solid var(--text-color); color:var(--text-color); font-size:0.7em; padding:2px 6px; border-radius:4px; cursor:pointer; margin-left:8px; pointer-events:auto; }
     </style>
 </head>
 <body>
@@ -106,7 +113,9 @@
                 else if(block.type === 'counter') renderCounterBlock(block, div, index);
                 else if(block.type === 'sequence') renderSequenceBlock(block, div, index);
                 else if(block.type === 'progress_group') renderProgress(block, div, s);
-                // Standard Blocks
+                else if(block.type === 'progress_custom') div.appendChild(createBarElement(block.label, new Date(block.start), new Date(block.end), false));
+                else if(block.type === 'progress_cycle') { const wrap = createBarElement(block.label, null, null, true, `block-${index}`); div.appendChild(wrap); }
+                
                 else if (block.type === 'world_clock') {
                     block.locations.forEach((loc, i) => {
                         const row = document.createElement('div'); row.className = 'clock-row';
@@ -116,6 +125,11 @@
                 }
                 else if (block.type === 'date_display') { 
                     div.innerHTML = `<div class="date-display" id="date-main-${index}"></div><div class="date-sub" id="date-sub-${index}"></div>`; 
+                }
+                else if (block.type === 'countdown') { div.innerHTML = `<div class="countdown-row"><span class="countdown-label">${block.label}</span><span class="countdown-time" id="cnt-${index}">--</span></div>`; }
+                else if (block.type === 'timer') {
+                    const hrs = parseInt(block.hours)||0; const mins = parseInt(block.minutes)||0; const total = (hrs*60)+mins; const label = hrs>0 ? `${hrs}h ${mins}m` : `${mins}m`;
+                    div.innerHTML = `<div class="timer-container"><div style="font-size:0.8em; opacity:0.7;">${block.label||'Timer'}</div><div class="timer-display" id="timer-display-${index}">00:00</div><div class="timer-controls"><button class="timer-btn" onclick="startTimer(${index}, ${total})">Start ${label}</button><button class="timer-btn" style="color:#eb5757" onclick="stopTimer(${index})">Stop</button></div></div>`;
                 }
                 
                 container.appendChild(div);
@@ -129,29 +143,26 @@
             const newMoon = new Date(2000, 0, 6, 18, 14);
             const cycle = 29.53058867;
             const diffDays = (now - newMoon) / 86400000;
-            const age = diffDays % cycle; // 0 to 29.5
+            const age = diffDays % cycle; 
             
-            // STRICT PHASES: Peak is defined as center of 24h window (Age X +/- 0.5 days)
+            // STRICT PHASES
             let phaseIdx = 0;
             if (age < 1 || age > 28.5) phaseIdx = 0; // New
             else if (age >= 1 && age < 6.4) phaseIdx = 1; // Wax Cres
             else if (age >= 6.4 && age < 8.4) phaseIdx = 2; // 1st Q
             else if (age >= 8.4 && age < 13.8) phaseIdx = 3; // Wax Gibb
-            else if (age >= 13.8 && age < 15.8) phaseIdx = 4; // Full (Strict 2 day window for visual, actually) let's do 1 day: 14.2 to 15.2
+            else if (age >= 13.8 && age < 15.8) phaseIdx = 4; // Full 
             else if (age >= 15.8 && age < 21.1) phaseIdx = 5; // Wan Gibb
             else if (age >= 21.1 && age < 23.1) phaseIdx = 6; // Last Q
             else phaseIdx = 7; // Wan Cres
 
-            // Refined Strict Peaks (1 Day Window)
-            // Full Moon Peak is ~14.76 days. Window: 14.26 - 15.26
+            // Strict Peak Windows
             if (age > 14.26 && age < 15.26) phaseIdx = 4; 
-            else if (age > 6.88 && age < 7.88) phaseIdx = 2; // 1st Q approx 7.38
-            else if (age > 21.64 && age < 22.64) phaseIdx = 6; // 3rd Q approx 22.14
+            else if (age > 6.88 && age < 7.88) phaseIdx = 2; 
+            else if (age > 21.64 && age < 22.64) phaseIdx = 6;
 
             const icons = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
             const names = ['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
-            
-            // Moon Names
             const monthNames = ["Wolf","Snow","Worm","Pink","Flower","Strawberry","Buck","Sturgeon","Harvest","Hunter","Beaver","Cold"];
             const moonName = monthNames[now.getMonth()] + " Moon";
 
@@ -162,7 +173,6 @@
             if(b.showName!==false && phaseIdx===4) html += `<div style="color:var(--block-color)">${moonName}</div>`;
             if(b.showAge!==false) html += `<div style="opacity:0.6">${Math.floor(age)} days old</div>`;
             if(b.showPercent!==false) {
-                // Illumination calculation approx
                 const illum = Math.round((1 - Math.cos((age / 29.53) * 2 * Math.PI)) / 2 * 100);
                 html += `<div style="font-size:0.8em">${illum}% Lit</div>`;
             }
@@ -170,14 +180,13 @@
             parent.innerHTML = html;
         }
 
-        // --- GRID 2.0 (The Big Logic Update) ---
+        // --- GRID 2.0 (Logic) ---
         function renderGridBlock(b, parent, settings) {
             let html = `<div class="widget-header">${b.gridType.toUpperCase()} GRID</div><div class="grid-container grid-${b.blockSize||'sm'}">`;
             const now = new Date();
-            let total = 0, filled = 0, labelRow = '';
+            let total = 0, filled = 0;
             
             if(b.gridType === 'year') { 
-                // 4 Rows of 13 Weeks
                 html = `<div class="widget-header">YEAR PROGRESS</div><div style="display:flex; flex-direction:column; gap:2px;">`;
                 const currentWeek = getWeekNumber(now);
                 for(let r=0; r<4; r++) {
@@ -191,29 +200,20 @@
                 }
                 parent.innerHTML = html + `</div>`; return;
             }
-            
             else if(b.gridType === 'month') {
-                // Calendar Style (7 cols)
-                const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(); // Days in month
+                const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
                 const day = now.getDate();
                 html = `<div class="widget-header">MONTH (${day}/${dim})</div><div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;">`;
-                
-                // Header (S M T W T F S) - Shift based on settings.weekStart?
-                // Let's stick to standard layout or user specific?
-                // User asked for 7.
                 if(b.showLabels) {
                     const days = settings.weekStart==='monday' ? ['M','T','W','T','F','S','S'] : ['S','M','T','W','T','F','S'];
                     days.forEach(d => html += `<div class="grid-header-cell">${d}</div>`);
                 }
-                
                 for(let i=1; i<=dim; i++) {
                     html += `<div class="grid-cell ${i<=day?'filled':''}" style="height:${getSize(b.blockSize)}; width:100%;"></div>`;
                 }
                 parent.innerHTML = html + `</div>`; return;
             }
-            
             else if(b.gridType === 'week') { 
-                // 1 Row of 7
                 if(b.showLabels) {
                     const days = settings.weekStart==='monday' ? ['M','T','W','T','F','S','S'] : ['S','M','T','W','T','F','S'];
                     html += `<div class="grid-header-row">`;
@@ -227,11 +227,9 @@
                 }
                 parent.innerHTML = html + `</div></div>`; return;
             }
-            
             else if(b.gridType === 'quarter') {
-               // 3 Rows x 4 Cols
                const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1);
-               const weeksPassed = Math.floor((now - qStart) / 604800000); // approx
+               const weeksPassed = Math.floor((now - qStart) / 604800000); 
                html = `<div class="widget-header">QUARTER</div><div style="display:flex; flex-direction:column; gap:2px;">`;
                for(let r=0; r<3; r++) {
                    html += `<div style="display:flex; gap:2px; width:100%">`;
@@ -243,9 +241,7 @@
                }
                parent.innerHTML = html + `</div>`; return;
             }
-            
             else if(b.gridType === 'day') {
-                // 3 Rows of 8
                 const hr = now.getHours();
                 html = `<div class="widget-header">DAY (${hr}/24)</div><div style="display:flex; flex-direction:column; gap:2px;">`;
                 for(let r=0; r<3; r++) {
@@ -258,13 +254,11 @@
                 }
                 parent.innerHTML = html + `</div>`; return;
             }
-            
             else if(b.gridType === 'life') {
                 const age = now.getFullYear() - new Date(b.dob||'1990').getFullYear();
                 const total = parseInt(b.expectancy||80);
                 html = `<div class="widget-header">LIFE (${age}/${total})</div><div class="grid-container" style="gap:2px;">`;
                 for(let i=0; i<total; i++) {
-                    // Break every 20
                     if(i>0 && i%20===0) html += `<div style="flex-basis:100%; height:0;"></div>`;
                     html += `<div class="grid-cell ${i<age?'filled':''}" style="width:${getSize(b.blockSize)}; height:${getSize(b.blockSize)}"></div>`;
                 }
@@ -277,8 +271,6 @@
         // --- SEQUENCE 2.0 ---
         function renderSequenceBlock(b, parent, id) {
             let state = JSON.parse(localStorage.getItem(`seq_${id}`) || '{"step":0, "active":false, "endTime":0}');
-            
-            // Logic Check
             const now = Date.now();
             let currentLabel = "Ready";
             let timeLeft = "";
@@ -286,13 +278,11 @@
             if(state.active) {
                 const diff = state.endTime - now;
                 if(diff <= 0) {
-                    // Step Finished
                     state.step++;
                     if(state.step >= b.steps.length) {
                         state.active = false; 
                         currentLabel = "Sequence Complete";
                     } else {
-                        // Start Next Step? User asked for Auto? Let's assume auto for now.
                         state.endTime = now + (b.steps[state.step].duration * 60000);
                         currentLabel = b.steps[state.step].label;
                     }
@@ -308,36 +298,30 @@
             }
 
             let html = `<div class="widget-header">${b.label} <span style="float:right">${timeLeft}</span></div>`;
-            
-            // List View
             html += `<div class="seq-list">`;
             b.steps.forEach((s, i) => {
                 let status = i < state.step ? '✔ ' : i === state.step ? (state.active ? '▶ ' : '● ') : '○ ';
                 html += `<div class="seq-item ${i===state.step?'active':''}">${status} ${s.label} (${s.duration}m)</div>`;
             });
             html += `</div>`;
-            
-            // Controls
             html += `<div class="seq-controls">
                 <button class="seq-btn" onclick="seqAction(${id}, 'start')">▶</button>
                 <button class="seq-btn" onclick="seqAction(${id}, 'pause')">⏸</button>
                 <button class="seq-btn" onclick="seqAction(${id}, 'reset')">↻</button>
             </div>`;
-            
             parent.innerHTML = html;
         }
 
         window.seqAction = (id, action) => {
             let state = JSON.parse(localStorage.getItem(`seq_${id}`) || '{"step":0, "active":false}');
-            const data = getConfig().blocks[id]; // Need access to duration
+            const data = getConfig().blocks[id];
             
             if(action === 'reset') { state.step = 0; state.active = false; }
             if(action === 'start' && !state.active && state.step < data.steps.length) {
                 state.active = true;
-                // Add remaining time logic later? Simple start for now:
                 state.endTime = Date.now() + (data.steps[state.step].duration * 60000);
             }
-            if(action === 'pause') { state.active = false; } // Simple pause (resets step time for now to keep simple)
+            if(action === 'pause') { state.active = false; } 
             
             localStorage.setItem(`seq_${id}`, JSON.stringify(state));
             render();
@@ -357,11 +341,9 @@
         window.updateCounter = (id, d) => { localStorage.setItem(`cnt_${id}`, parseInt(localStorage.getItem(`cnt_${id}`)||0)+d); render(); };
         window.resetCounter = (id) => { localStorage.setItem(`cnt_${id}`, 0); render(); };
 
-        // ... (Retain renderProgress, updateDynamics helpers, etc. from V17) ...
         function renderProgress(b, parent, s) {
             b.items.forEach(item => {
                 if(item.visible !== false) {
-                    // ... [Standard Bar Logic from V17] ...
                     let dates;
                     if(item.type === 'life') {
                         const start = new Date(item.dob || '1990-01-01');
@@ -424,7 +406,6 @@
                         }
                     });
                 }
-                // Date Display Logic
                 if (block.type === 'date_display') {
                     const mEl = document.getElementById(`date-main-${bIdx}`);
                     const sEl = document.getElementById(`date-sub-${bIdx}`);
@@ -435,15 +416,49 @@
                         sEl.innerText = buildDateString(l2, now);
                     }
                 }
-                // Sequence Logic
+                if (block.type === 'countdown') {
+                    const el = document.getElementById(`cnt-${bIdx}`);
+                    if(el) {
+                        let target = new Date(block.date); 
+                        if(!block.includeTime) target.setHours(0,0,0,0);
+                        else if(block.time) { const [h, m] = block.time.split(':'); target.setHours(h || 0, m || 0, 0, 0); }
+                        const diff = target - now;
+                        if (diff <= 0) el.innerText = "Done";
+                        else {
+                            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            if (block.style === 'standard') el.innerText = `${d+1} Days`;
+                            else if (block.style === 'precise') el.innerText = `${d}d ${h}h`;
+                            else el.innerText = `${d}d ${h}h ${m}m`;
+                        }
+                    }
+                }
+                if (block.type === 'progress_cycle') {
+                    const resetMode = block.resetMode || 'auto';
+                    let anchor = new Date(block.anchor);
+                    if (resetMode === 'manual') {
+                        const restartTs = localStorage.getItem(`cycle_reset_block-${bIdx}`);
+                        if(restartTs) anchor = new Date(parseInt(restartTs));
+                    }
+                    const days = parseFloat(block.days) || 1; 
+                    const duration = days * 86400000;
+                    const elapsed = now - anchor;
+                    let pct = 0; let isDone = false;
+                    if(elapsed < 0) pct = 0;
+                    else {
+                        if (resetMode === 'auto') pct = ((elapsed % duration) / duration) * 100;
+                        else { if (elapsed >= duration) { pct = 100; isDone = true; } else { pct = (elapsed / duration) * 100; } }
+                    }
+                    updateCycleBar(`block-${bIdx}`, pct, isDone);
+                }
                 if (block.type === 'sequence') {
-                    // Simply re-rendering sequence on interval ensures timer counts down
                     const div = document.getElementById(`block-${bIdx}`);
                     if(div) renderSequenceBlock(block, div, bIdx);
                 }
             });
         }
-        function buildDateString(tokens, now) { /* ... Same as V17 ... */ 
+        function buildDateString(tokens, now) {
             return tokens.map(t => {
                 const type = (typeof t === 'string') ? t : t.type;
                 switch(type) {
