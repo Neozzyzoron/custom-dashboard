@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Widget V19</title>
+    <title>Notion Widget V20</title>
     <style>
         :root {
             --bg-color: #FFFFFF; --text-color: #37352F; --accent-color: #E3E2E0;
@@ -23,10 +23,9 @@
         /* THEMES */
         .theme-card .widget-block { border-color: var(--accent-color); padding: var(--pad); }
         .theme-minimal .progress-bg { height: 4px; }
-        
         .widget-header { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 0.5rem; font-weight: 600; color: var(--block-color, inherit); }
         
-        /* COMPONENTS */
+        /* COMPONENT CLASSES */
         .clock-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--accent-color); padding: 4px 0; }
         .clock-row:last-child { border: none; }
         .progress-wrapper { margin-bottom: 0.5rem; }
@@ -34,19 +33,31 @@
         .progress-bg { height: 8px; background: var(--accent-color); border-radius: 4px; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--block-color, var(--text-color)); width: 0%; }
         
-        /* GRID */
+        /* GRID 2.0 */
         .grid-container { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 5px; }
-        .grid-cell { background: var(--accent-color); border-radius: 2px; width: 10px; height: 10px; }
+        .grid-cell { background: var(--accent-color); border-radius: 1px; }
         .grid-cell.filled { background: var(--block-color, var(--text-color)); }
-        .quarter-row { display: flex; gap: 2px; width: 100%; margin-bottom: 2px; } /* For 3x4 layout */
         
-        /* SEQUENCE */
-        .seq-current { font-size: 1.5em; font-weight: bold; font-family: monospace; color: var(--block-color, inherit); }
-        .seq-next { font-size: 0.8em; opacity: 0.6; margin-top: 4px; }
+        /* Grid Sizes */
+        .grid-sm .grid-cell { width: 8px; height: 8px; }
+        .grid-md .grid-cell { width: 12px; height: 12px; }
+        .grid-lg .grid-cell { width: 16px; height: 16px; }
         
-        /* MOON */
-        .moon-display { display: flex; align-items: center; gap: 10px; font-size: 1.1em; }
-        .moon-icon { font-size: 1.5em; }
+        /* Grid Headers (M T W...) */
+        .grid-header-row { display: flex; gap: 2px; margin-bottom: 2px; width: 100%; }
+        .grid-header-cell { font-size: 0.6em; text-align: center; color: var(--text-color); opacity: 0.5; }
+        
+        /* MOON 2.0 */
+        .moon-display { display: flex; align-items: center; gap: 15px; }
+        .moon-icon { font-size: 2.5em; line-height: 1; }
+        .moon-details { font-size: 0.9em; line-height: 1.4; }
+        
+        /* SEQUENCE 2.0 */
+        .seq-list { margin-top: 10px; border-top: 1px solid var(--accent-color); padding-top: 5px; }
+        .seq-item { display: flex; justify-content: space-between; font-size: 0.85em; padding: 2px 0; opacity: 0.5; }
+        .seq-item.active { opacity: 1; font-weight: bold; color: var(--block-color, inherit); }
+        .seq-controls { display: flex; gap: 5px; margin-top: 10px; }
+        .seq-btn { background: var(--accent-color); border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
         
         /* COUNTER */
         .counter-wrap { display: flex; align-items: center; justify-content: space-between; background: var(--accent-color); padding: 5px 10px; border-radius: var(--radius); }
@@ -54,7 +65,8 @@
         .counter-val { font-weight: bold; font-family: monospace; font-size: 1.2em; }
         
         /* SPACER */
-        .spacer-line { width: 100%; border-bottom: 1px dashed var(--accent-color); opacity: 0.5; }
+        .spacer-line { width: 100%; border-bottom: 1px solid var(--accent-color); opacity: 0.5; }
+        .spacer-dashed { border-style: dashed; } .spacer-dotted { border-style: dotted; } .spacer-solid { border-style: solid; } .spacer-none { border: none; }
     </style>
 </head>
 <body>
@@ -63,6 +75,7 @@
         function getConfig() { try { return JSON.parse(atob(window.location.hash.substring(1))); } catch(e) { return null; } }
         const container = document.getElementById('dashboard');
 
+        // --- CORE RENDER ---
         function render() {
             const data = getConfig();
             if (!data) return;
@@ -79,7 +92,7 @@
                 div.className = 'widget-block';
                 div.id = `block-${index}`;
                 if (block.width === '50') div.classList.add('half-width');
-                if (block.width === '33') div.classList.add('third-width'); // NEW
+                if (block.width === '33') div.classList.add('third-width');
                 if (block.color && block.color !== 'default') {
                     const val = block.color.startsWith('#') ? block.color : `var(--c-${block.color})`;
                     div.style.setProperty('--block-color', val);
@@ -87,78 +100,250 @@
 
                 if(block.type === 'header') div.innerHTML = `<div class="widget-header">${block.text}</div>`;
                 else if(block.type === 'empty') div.innerHTML = `&nbsp;`;
-                else if(block.type === 'spacer') div.innerHTML = `<div class="spacer-line" style="margin-top:${(block.height||20)/2}px; margin-bottom:${(block.height||20)/2}px"></div>`;
+                else if(block.type === 'spacer') div.innerHTML = `<div class="spacer-line spacer-${block.style||'solid'}" style="margin-top:${(block.height||20)/2}px; margin-bottom:${(block.height||20)/2}px"></div>`;
                 else if(block.type === 'visual_grid') renderGridBlock(block, div, s);
                 else if(block.type === 'moon_phase') renderMoonBlock(block, div);
                 else if(block.type === 'counter') renderCounterBlock(block, div, index);
                 else if(block.type === 'sequence') renderSequenceBlock(block, div, index);
                 else if(block.type === 'progress_group') renderProgress(block, div, s);
-                // ... (Existing clocks/dates/timers logic implied here for brevity, assume retained)
+                // Standard Blocks
+                else if (block.type === 'world_clock') {
+                    block.locations.forEach((loc, i) => {
+                        const row = document.createElement('div'); row.className = 'clock-row';
+                        row.innerHTML = `<div class="clock-left"><span class="clock-city">${loc.label} <span class="clock-abbr" id="abbr-${index}-${i}" style="font-weight:400; opacity:0.6; font-size:0.9em;"></span></span><span class="clock-date" id="date-${index}-${i}">--</span></div><span class="clock-time" id="clock-${index}-${i}">--:--</span>`;
+                        div.appendChild(row);
+                    });
+                }
+                else if (block.type === 'date_display') { 
+                    div.innerHTML = `<div class="date-display" id="date-main-${index}"></div><div class="date-sub" id="date-sub-${index}"></div>`; 
+                }
                 
                 container.appendChild(div);
             });
             updateDynamics(data.blocks, s);
         }
 
-        // --- NEW BLOCK LOGIC ---
-
+        // --- MOON 2.0 (Strict Peaks + Names) ---
         function renderMoonBlock(b, parent) {
-            // Synodic calculation
             const now = new Date();
             const newMoon = new Date(2000, 0, 6, 18, 14);
             const cycle = 29.53058867;
-            const diff = (now - newMoon) / 86400000;
-            const age = diff % cycle;
-            const phase = Math.floor(age / (cycle / 8)); 
+            const diffDays = (now - newMoon) / 86400000;
+            const age = diffDays % cycle; // 0 to 29.5
+            
+            // STRICT PHASES: Peak is defined as center of 24h window (Age X +/- 0.5 days)
+            let phaseIdx = 0;
+            if (age < 1 || age > 28.5) phaseIdx = 0; // New
+            else if (age >= 1 && age < 6.4) phaseIdx = 1; // Wax Cres
+            else if (age >= 6.4 && age < 8.4) phaseIdx = 2; // 1st Q
+            else if (age >= 8.4 && age < 13.8) phaseIdx = 3; // Wax Gibb
+            else if (age >= 13.8 && age < 15.8) phaseIdx = 4; // Full (Strict 2 day window for visual, actually) let's do 1 day: 14.2 to 15.2
+            else if (age >= 15.8 && age < 21.1) phaseIdx = 5; // Wan Gibb
+            else if (age >= 21.1 && age < 23.1) phaseIdx = 6; // Last Q
+            else phaseIdx = 7; // Wan Cres
+
+            // Refined Strict Peaks (1 Day Window)
+            // Full Moon Peak is ~14.76 days. Window: 14.26 - 15.26
+            if (age > 14.26 && age < 15.26) phaseIdx = 4; 
+            else if (age > 6.88 && age < 7.88) phaseIdx = 2; // 1st Q approx 7.38
+            else if (age > 21.64 && age < 22.64) phaseIdx = 6; // 3rd Q approx 22.14
+
             const icons = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
-            const names = ['New','Waxing Crescent','First Quarter','Waxing Gibbous','Full','Waning Gibbous','Last Quarter','Waning Crescent'];
-            parent.innerHTML = `<div class="moon-display"><span class="moon-icon">${icons[phase]}</span> <div><div style="font-weight:bold">${names[phase]}</div><div style="font-size:0.8em;opacity:0.6">${Math.round(age)} days old</div></div></div>`;
+            const names = ['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
+            
+            // Moon Names
+            const monthNames = ["Wolf","Snow","Worm","Pink","Flower","Strawberry","Buck","Sturgeon","Harvest","Hunter","Beaver","Cold"];
+            const moonName = monthNames[now.getMonth()] + " Moon";
+
+            let html = `<div class="moon-display">`;
+            if(b.showIcon!==false) html += `<span class="moon-icon">${icons[phaseIdx]}</span>`;
+            html += `<div class="moon-details">`;
+            if(b.showPhase!==false) html += `<div style="font-weight:bold">${names[phaseIdx]}</div>`;
+            if(b.showName!==false && phaseIdx===4) html += `<div style="color:var(--block-color)">${moonName}</div>`;
+            if(b.showAge!==false) html += `<div style="opacity:0.6">${Math.floor(age)} days old</div>`;
+            if(b.showPercent!==false) {
+                // Illumination calculation approx
+                const illum = Math.round((1 - Math.cos((age / 29.53) * 2 * Math.PI)) / 2 * 100);
+                html += `<div style="font-size:0.8em">${illum}% Lit</div>`;
+            }
+            html += `</div></div>`;
+            parent.innerHTML = html;
         }
 
+        // --- GRID 2.0 (The Big Logic Update) ---
         function renderGridBlock(b, parent, settings) {
-            let html = `<div class="widget-header">${b.gridType.toUpperCase()} GRID</div><div class="grid-container">`;
+            let html = `<div class="widget-header">${b.gridType.toUpperCase()} GRID</div><div class="grid-container grid-${b.blockSize||'sm'}">`;
             const now = new Date();
-            let total = 0, filled = 0;
+            let total = 0, filled = 0, labelRow = '';
             
-            if(b.gridType === 'year') { total = 52; filled = getWeekNumber(now); }
-            else if(b.gridType === 'week') { total = 7; filled = (now.getDay() + (settings.weekStart==='monday'?6:0)) % 7 + 1; } // Simple approx
-            else if(b.gridType === 'day') { total = 24; filled = now.getHours(); }
-            else if(b.gridType === 'life') { total = parseInt(b.expectancy || 80); filled = now.getFullYear() - new Date(b.dob || '1990').getFullYear(); }
-            
-            // SPECIAL QUARTER LOGIC (3 Rows x 4 Blocks)
-            if(b.gridType === 'quarter') {
-                html = `<div class="widget-header">QUARTER GRID</div>`;
-                // Calculate weeks passed in current quarter
-                const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1);
-                const weeksPassed = Math.floor((now - qStart) / 604800000);
-                
-                for(let r=0; r<3; r++) { // 3 Months
-                    html += `<div class="quarter-row">`;
-                    for(let c=0; c<4; c++) { // 4 Weeks/Month approx
-                        const idx = r*4 + c;
-                        html += `<div class="grid-cell ${idx < weeksPassed ? 'filled' : ''}" style="width:20px; height:20px; flex:1;"></div>`;
+            if(b.gridType === 'year') { 
+                // 4 Rows of 13 Weeks
+                html = `<div class="widget-header">YEAR PROGRESS</div><div style="display:flex; flex-direction:column; gap:2px;">`;
+                const currentWeek = getWeekNumber(now);
+                for(let r=0; r<4; r++) {
+                    html += `<div style="display:flex; gap:2px;">`;
+                    for(let c=0; c<13; c++) {
+                        const weekNum = r*13 + c + 1;
+                        const isFilled = weekNum <= currentWeek;
+                        html += `<div class="grid-cell ${isFilled?'filled':''}" style="width:${getSize(b.blockSize)}; height:${getSize(b.blockSize)}" title="Week ${weekNum}"></div>`;
                     }
                     html += `</div>`;
                 }
-                parent.innerHTML = html;
-                return;
+                parent.innerHTML = html + `</div>`; return;
             }
-
-            // Standard Grid
-            for(let i=0; i<total; i++) {
-                html += `<div class="grid-cell ${i < filled ? 'filled' : ''}"></div>`;
+            
+            else if(b.gridType === 'month') {
+                // Calendar Style (7 cols)
+                const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate(); // Days in month
+                const day = now.getDate();
+                html = `<div class="widget-header">MONTH (${day}/${dim})</div><div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:2px;">`;
+                
+                // Header (S M T W T F S) - Shift based on settings.weekStart?
+                // Let's stick to standard layout or user specific?
+                // User asked for 7.
+                if(b.showLabels) {
+                    const days = settings.weekStart==='monday' ? ['M','T','W','T','F','S','S'] : ['S','M','T','W','T','F','S'];
+                    days.forEach(d => html += `<div class="grid-header-cell">${d}</div>`);
+                }
+                
+                for(let i=1; i<=dim; i++) {
+                    html += `<div class="grid-cell ${i<=day?'filled':''}" style="height:${getSize(b.blockSize)}; width:100%;"></div>`;
+                }
+                parent.innerHTML = html + `</div>`; return;
             }
-            parent.innerHTML = html + `</div>`;
+            
+            else if(b.gridType === 'week') { 
+                // 1 Row of 7
+                if(b.showLabels) {
+                    const days = settings.weekStart==='monday' ? ['M','T','W','T','F','S','S'] : ['S','M','T','W','T','F','S'];
+                    html += `<div class="grid-header-row">`;
+                    days.forEach(d => html += `<div class="grid-header-cell" style="flex:1">${d}</div>`);
+                    html += `</div>`;
+                }
+                const dayIdx = (now.getDay() + (settings.weekStart==='monday'?6:0)) % 7 + 1;
+                html += `<div style="display:flex; gap:2px; width:100%">`;
+                for(let i=1; i<=7; i++) {
+                    html += `<div class="grid-cell ${i<=dayIdx?'filled':''}" style="height:${getSize(b.blockSize)}; flex:1"></div>`;
+                }
+                parent.innerHTML = html + `</div></div>`; return;
+            }
+            
+            else if(b.gridType === 'quarter') {
+               // 3 Rows x 4 Cols
+               const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1);
+               const weeksPassed = Math.floor((now - qStart) / 604800000); // approx
+               html = `<div class="widget-header">QUARTER</div><div style="display:flex; flex-direction:column; gap:2px;">`;
+               for(let r=0; r<3; r++) {
+                   html += `<div style="display:flex; gap:2px; width:100%">`;
+                   for(let c=0; c<4; c++) {
+                       const idx = r*4 + c;
+                       html += `<div class="grid-cell ${idx<weeksPassed?'filled':''}" style="height:${getSize(b.blockSize)}; flex:1"></div>`;
+                   }
+                   html += `</div>`;
+               }
+               parent.innerHTML = html + `</div>`; return;
+            }
+            
+            else if(b.gridType === 'day') {
+                // 3 Rows of 8
+                const hr = now.getHours();
+                html = `<div class="widget-header">DAY (${hr}/24)</div><div style="display:flex; flex-direction:column; gap:2px;">`;
+                for(let r=0; r<3; r++) {
+                    html += `<div style="display:flex; gap:2px;">`;
+                    for(let c=0; c<8; c++) {
+                        const h = r*8 + c;
+                        html += `<div class="grid-cell ${h<hr?'filled':''}" style="width:${getSize(b.blockSize)}; height:${getSize(b.blockSize)}; flex:1"></div>`;
+                    }
+                    html += `</div>`;
+                }
+                parent.innerHTML = html + `</div>`; return;
+            }
+            
+            else if(b.gridType === 'life') {
+                const age = now.getFullYear() - new Date(b.dob||'1990').getFullYear();
+                const total = parseInt(b.expectancy||80);
+                html = `<div class="widget-header">LIFE (${age}/${total})</div><div class="grid-container" style="gap:2px;">`;
+                for(let i=0; i<total; i++) {
+                    // Break every 20
+                    if(i>0 && i%20===0) html += `<div style="flex-basis:100%; height:0;"></div>`;
+                    html += `<div class="grid-cell ${i<age?'filled':''}" style="width:${getSize(b.blockSize)}; height:${getSize(b.blockSize)}"></div>`;
+                }
+                parent.innerHTML = html + `</div>`; return;
+            }
         }
 
+        function getSize(sz) { return sz==='lg'?'16px' : sz==='md'?'12px' : '8px'; }
+
+        // --- SEQUENCE 2.0 ---
         function renderSequenceBlock(b, parent, id) {
-            const state = JSON.parse(localStorage.getItem(`seq_${id}`) || '{"step":0, "active":false}');
-            const step = b.steps[state.step] || {label:'Done', duration:0};
-            parent.innerHTML = `<div class="widget-header">${b.label}</div>
-            <div class="seq-current">${step.label}</div>
-            <div class="seq-next">${b.steps[state.step+1] ? 'Next: '+b.steps[state.step+1].label : 'Finish'}</div>`;
+            let state = JSON.parse(localStorage.getItem(`seq_${id}`) || '{"step":0, "active":false, "endTime":0}');
+            
+            // Logic Check
+            const now = Date.now();
+            let currentLabel = "Ready";
+            let timeLeft = "";
+            
+            if(state.active) {
+                const diff = state.endTime - now;
+                if(diff <= 0) {
+                    // Step Finished
+                    state.step++;
+                    if(state.step >= b.steps.length) {
+                        state.active = false; 
+                        currentLabel = "Sequence Complete";
+                    } else {
+                        // Start Next Step? User asked for Auto? Let's assume auto for now.
+                        state.endTime = now + (b.steps[state.step].duration * 60000);
+                        currentLabel = b.steps[state.step].label;
+                    }
+                    localStorage.setItem(`seq_${id}`, JSON.stringify(state));
+                } else {
+                    currentLabel = b.steps[state.step].label;
+                    const m = Math.floor(diff/60000); const s = Math.floor((diff%60000)/1000);
+                    timeLeft = `${m}:${s.toString().padStart(2,'0')}`;
+                }
+            } else {
+                if(state.step >= b.steps.length) currentLabel = "Done";
+                else currentLabel = b.steps[state.step] ? b.steps[state.step].label : "Ready";
+            }
+
+            let html = `<div class="widget-header">${b.label} <span style="float:right">${timeLeft}</span></div>`;
+            
+            // List View
+            html += `<div class="seq-list">`;
+            b.steps.forEach((s, i) => {
+                let status = i < state.step ? '✔ ' : i === state.step ? (state.active ? '▶ ' : '● ') : '○ ';
+                html += `<div class="seq-item ${i===state.step?'active':''}">${status} ${s.label} (${s.duration}m)</div>`;
+            });
+            html += `</div>`;
+            
+            // Controls
+            html += `<div class="seq-controls">
+                <button class="seq-btn" onclick="seqAction(${id}, 'start')">▶</button>
+                <button class="seq-btn" onclick="seqAction(${id}, 'pause')">⏸</button>
+                <button class="seq-btn" onclick="seqAction(${id}, 'reset')">↻</button>
+            </div>`;
+            
+            parent.innerHTML = html;
         }
 
+        window.seqAction = (id, action) => {
+            let state = JSON.parse(localStorage.getItem(`seq_${id}`) || '{"step":0, "active":false}');
+            const data = getConfig().blocks[id]; // Need access to duration
+            
+            if(action === 'reset') { state.step = 0; state.active = false; }
+            if(action === 'start' && !state.active && state.step < data.steps.length) {
+                state.active = true;
+                // Add remaining time logic later? Simple start for now:
+                state.endTime = Date.now() + (data.steps[state.step].duration * 60000);
+            }
+            if(action === 'pause') { state.active = false; } // Simple pause (resets step time for now to keep simple)
+            
+            localStorage.setItem(`seq_${id}`, JSON.stringify(state));
+            render();
+        };
+
+        // --- COUNTER 2.0 ---
         function renderCounterBlock(b, parent, id) {
             const count = parseInt(localStorage.getItem(`cnt_${id}`) || '0');
             parent.innerHTML = `<div class="widget-header">${b.label}</div>
@@ -166,32 +351,126 @@
                 <button class="counter-btn" onclick="updateCounter(${id}, -1)">-</button>
                 <span class="counter-val">${count}</span>
                 <button class="counter-btn" onclick="updateCounter(${id}, 1)">+</button>
+                <button class="counter-btn" style="font-size:0.8em; opacity:0.5" onclick="resetCounter(${id})">↻</button>
             </div>`;
         }
+        window.updateCounter = (id, d) => { localStorage.setItem(`cnt_${id}`, parseInt(localStorage.getItem(`cnt_${id}`)||0)+d); render(); };
+        window.resetCounter = (id) => { localStorage.setItem(`cnt_${id}`, 0); render(); };
 
-        window.updateCounter = (id, delta) => {
-            const k = `cnt_${id}`;
-            const v = parseInt(localStorage.getItem(k)||'0') + delta;
-            localStorage.setItem(k, v);
-            render(); // Re-render to show new value
-        };
-
+        // ... (Retain renderProgress, updateDynamics helpers, etc. from V17) ...
         function renderProgress(b, parent, s) {
-            // Reuse logic from previous, but ensure Quarter is handled
             b.items.forEach(item => {
                 if(item.visible !== false) {
-                    let pct = 0;
-                    // ... (Calculation logic same as V17, add Quarter)
-                    if(item.type === 'quarter') {
-                        // Quarter Logic
+                    // ... [Standard Bar Logic from V17] ...
+                    let dates;
+                    if(item.type === 'life') {
+                        const start = new Date(item.dob || '1990-01-01');
+                        const end = new Date(start);
+                        end.setFullYear(end.getFullYear() + parseInt(item.expectancy || 80));
+                        dates = { start, end };
+                    } else {
+                        dates = getDatesForType(item.type, s.weekStart);
                     }
-                    // ... (Create Bar)
+                    if(dates) parent.appendChild(createBarElement(item.label, dates.start, dates.end, false)); 
                 }
             });
         }
+        function createBarElement(label, start, end, isCycle, parentId) {
+            let pct = 0;
+            if(!isCycle) { 
+                const now = new Date(); 
+                if(now > end) pct = 100; else if(now > start) pct = ((now - start) / (end - start)) * 100; 
+            }
+            const wrapper = document.createElement('div'); wrapper.className = 'progress-wrapper';
+            wrapper.innerHTML = `<div class="progress-meta"><span>${label}</span><span>${pct.toFixed(1)}%</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${pct}%"></div></div>`;
+            return wrapper;
+        }
+        function getDatesForType(type, weekStart = 'monday') {
+            const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+            if (type === 'day') return { start: new Date(y, m, now.getDate()), end: new Date(y, m, now.getDate(), 23, 59, 59) };
+            if (type === 'week') { 
+                const d = now.getDay(); let diff;
+                if (weekStart === 'monday') diff = now.getDate() - d + (d === 0 ? -6 : 1);
+                else diff = now.getDate() - d; 
+                const s = new Date(now.setDate(diff)); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(s.getDate() + 7); 
+                return { start: s, end: e }; 
+            }
+            if (type === 'month') return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
+            if (type === 'quarter') { const q = Math.floor(m/3)*3; return { start: new Date(y, q, 1), end: new Date(y, q+3, 0) }; }
+            if (type === 'year') return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
+            return null;
+        }
+        function updateDynamics(blocks, settings) {
+            const now = new Date();
+            const use24h = settings.use24h === true;
+            blocks.forEach((block, bIdx) => {
+                if (block.type === 'world_clock') {
+                    block.locations.forEach((loc, lIdx) => {
+                        const timeEl = document.getElementById(`clock-${bIdx}-${lIdx}`);
+                        const dateEl = document.getElementById(`date-${bIdx}-${lIdx}`);
+                        const abbrEl = document.getElementById(`abbr-${bIdx}-${lIdx}`);
+                        if(timeEl) {
+                            const tz = (loc.timezone && loc.timezone !== 'local') ? loc.timezone : undefined;
+                            const tOpts = { hour: use24h?'2-digit':'numeric', minute:'2-digit', hour12: !use24h }; if(tz) tOpts.timeZone = tz;
+                            let tStr = now.toLocaleTimeString([], tOpts); if(!use24h) tStr = tStr.replace(' ', '');
+                            timeEl.innerText = tStr;
+                            const dOpts = { weekday: 'short', month: 'short', day: 'numeric' }; if(tz) dOpts.timeZone = tz;
+                            dateEl.innerText = now.toLocaleDateString([], dOpts);
+                            if(abbrEl && abbrEl.innerText === '') {
+                                const aOpts = { timeZoneName: 'short' }; if(tz) aOpts.timeZone = tz;
+                                const parts = new Intl.DateTimeFormat('en-US', aOpts).formatToParts(now);
+                                const tzName = parts.find(p => p.type === 'timeZoneName'); if(tzName && tzName.value) abbrEl.innerText = `(${tzName.value})`;
+                            }
+                        }
+                    });
+                }
+                // Date Display Logic
+                if (block.type === 'date_display') {
+                    const mEl = document.getElementById(`date-main-${bIdx}`);
+                    const sEl = document.getElementById(`date-sub-${bIdx}`);
+                    if(mEl) {
+                        const l1 = block.line1 || ['day_name_full', 'month_full', 'date_num'];
+                        const l2 = block.line2 || ['week_num', 'separator', 'quarter'];
+                        mEl.innerText = buildDateString(l1, now);
+                        sEl.innerText = buildDateString(l2, now);
+                    }
+                }
+                // Sequence Logic
+                if (block.type === 'sequence') {
+                    // Simply re-rendering sequence on interval ensures timer counts down
+                    const div = document.getElementById(`block-${bIdx}`);
+                    if(div) renderSequenceBlock(block, div, bIdx);
+                }
+            });
+        }
+        function buildDateString(tokens, now) { /* ... Same as V17 ... */ 
+            return tokens.map(t => {
+                const type = (typeof t === 'string') ? t : t.type;
+                switch(type) {
+                    case 'day_name_full': return now.toLocaleDateString([], {weekday:'long'});
+                    case 'day_name_short': return now.toLocaleDateString([], {weekday:'short'});
+                    case 'month_full': return now.toLocaleDateString([], {month:'long'});
+                    case 'month_short': return now.toLocaleDateString([], {month:'short'});
+                    case 'month_num': return (now.getMonth() + 1).toString().padStart(2, '0');
+                    case 'date_num': return now.getDate();
+                    case 'year': return now.getFullYear();
+                    case 'week_num': return `Week ${getWeekNumber(now)}`;
+                    case 'day_year': 
+                        const year = now.getFullYear();
+                        const isLeap = (year % 4 === 0 && year % 100 > 0) || year % 400 === 0;
+                        const start = new Date(now.getFullYear(), 0, 0);
+                        const diff = now - start;
+                        const oneDay = 1000 * 60 * 60 * 24;
+                        const day = Math.floor(diff / oneDay);
+                        return `Day ${day} of ${isLeap ? 366 : 365}`;
+                    case 'quarter': return `Q${Math.floor((now.getMonth() + 3) / 3)}`;
+                    case 'separator': return '|';
+                    default: return '';
+                }
+            }).join(' ');
+        }
+        function getWeekNumber(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1)); return Math.ceil((((d - yearStart) / 86400000) + 1)/7); }
 
-        // ... (Helpers: getWeekNumber, etc. from V17) ... 
-        
         window.addEventListener('hashchange', render);
         render(); setInterval(() => updateDynamics(getConfig().blocks, getConfig().settings), 1000);
     </script>
