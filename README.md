@@ -1,2 +1,2 @@
 # custom-dashboard
-experimental custom dashboards
+experimental custom dashboard widget
