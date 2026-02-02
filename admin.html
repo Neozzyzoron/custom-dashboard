@@ -2,116 +2,85 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Widget Admin V21</title>
+    <title>Widget Admin V22</title>
     <style>
-        /* RESET & CORE */
+        /* CORE */
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f7f7f5; color: #37352f; }
         
-        /* MAIN LAYOUT (Flex Column for Left Panel to enable Fixed Footer) */
+        /* LAYOUT */
         .main-container { display: flex; flex-direction: row; width: 100%; height: 100vh; overflow: hidden; }
+        .panel-left { width: 50%; height: 100%; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; min-width: 420px; position: relative; }
+        .panel-right { width: 50%; height: 100%; background: #eef0f2; padding: 20px; display: flex; flex-direction: column; min-width: 320px; }
         
-        .panel-left { 
-            width: 50%; height: 100%; background: #fff; border-right: 1px solid #e0e0e0; 
-            display: flex; flex-direction: column; min-width: 400px; position: relative;
-        }
-        .panel-right { 
-            width: 50%; height: 100%; background: #eef0f2; padding: 20px; 
-            display: flex; flex-direction: column; min-width: 320px; 
-        }
-        
-        /* ZONE A: COMPACT HEADER */
-        .sticky-header { 
-            padding: 15px 20px; background: white; border-bottom: 1px solid #f0f0f0; 
-            flex-shrink: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 15px;
-        }
+        /* HEADER */
+        .sticky-header { padding: 15px 20px; background: white; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; z-index: 10; }
+        .header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
         .header-title { font-size: 1.1rem; font-weight: 700; margin: 0; white-space: nowrap; }
-        .action-area { flex-grow: 1; display: flex; gap: 10px; align-items: center; }
-        .link-box { flex-grow: 1; background: #f0f0f0; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 0.75rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .action-area { display: flex; gap: 8px; align-items: center; flex-grow: 1; justify-content: flex-end; }
+        .link-box { background: #f0f0f0; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 0.75rem; color: #666; width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* ZONE B: SCROLLABLE CONTENT */
-        .scroll-content { 
-            padding: 20px; overflow-y: auto; flex-grow: 1; 
-            display: flex; flex-direction: column; gap: 15px; 
-            scroll-behavior: smooth;
-        }
+        /* SCROLL CONTENT */
+        .scroll-content { padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
         
-        /* ZONE C: FIXED FOOTER (Block Menu) */
-        .fixed-footer {
-            padding: 15px 20px; background: #fff; border-top: 1px solid #e0e0e0;
-            flex-shrink: 0; z-index: 20; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        }
+        /* FOOTER */
+        .fixed-footer { padding: 10px 15px; background: #fff; border-top: 1px solid #e0e0e0; flex-shrink: 0; z-index: 20; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
         
-        /* PREVIEW WRAPPER */
+        /* PREVIEW */
         .preview-wrapper { flex-grow: 1; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ccc; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
         .preview-toolbar { padding: 5px; background: #dfe1e6; border-bottom: 1px solid #ccc; display: flex; justify-content: center; align-items: center; height: 25px; flex-shrink: 0; }
-        .preview-label { font-size: 0.7rem; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 1px;}
         iframe { flex-grow: 1; width: 100%; border: none; background: white; display: block; }
 
         /* UI ELEMENTS */
         .dark-section { background: #34495e; padding: 12px; border-radius: 6px; color: white; flex-shrink: 0; font-size: 0.85rem;}
+        .dark-section h3 { margin: 0 0 10px 0; font-size: 0.9em; text-transform: uppercase; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; }
+        .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 0.75rem; color: #666;}
         .dark-section label { color: rgba(255,255,255,0.9); }
+        input, select, textarea { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; box-sizing: border-box; background: #fff; }
         
-        /* BUTTONS (Compact) */
-        .btn-action { padding: 6px 10px; font-size: 0.75rem; color: white; border-radius: 4px; border:none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; white-space: nowrap;}
-        .btn-refresh { background: #3498db; }
-        .btn-copy { background: #27ae60; }
-        .btn-open { background: #7f8c8d; }
-        .btn-action:hover { opacity: 0.8; }
-
-        /* BLOCK CARD */
+        /* BUTTONS */
+        .btn-action { padding: 6px 12px; font-size: 0.75rem; color: white; border-radius: 4px; border:none; cursor: pointer; font-weight: 600; white-space: nowrap; }
+        .btn-refresh { background: #3498db; } .btn-copy { background: #27ae60; } .btn-open { background: #7f8c8d; }
+        
+        /* MENU BUTTONS */
+        .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+        button.menu-btn { padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-weight: 600; font-size: 0.7rem; cursor: pointer; flex-grow: 1; text-align: center; background: #f9f9f9; color: #333; }
+        button.menu-btn:hover { background: #eee; transform: translateY(-1px); }
+        
+        /* BLOCK CARDS */
         .block-card { background: white; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 0; border-left: 4px solid #999; transition: all 0.2s; }
-        .block-header { padding: 10px 15px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fbfbfa; user-select: none; }
-        .block-header:hover { background: #f2f2f2; }
+        .block-header { padding: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: #fbfbfa; user-select: none; }
         .block-title { font-weight: 600; font-size: 0.85rem; flex-grow: 1; text-transform: uppercase; color: #555; }
         .block-label-preview { font-weight: 400; font-size: 0.85rem; color: #888; margin-left: 10px; text-transform: none; }
-        .toggle-icon { font-size: 0.7rem; color: #bbb; transition: transform 0.2s; }
-        .block-card.open .toggle-icon { transform: rotate(180deg); }
         .block-content { padding: 15px; border-top: 1px solid #f0f0f0; display: none; }
         .block-card.open .block-content { display: block; }
         
-        /* INPUTS & LISTS */
+        /* SUB LISTS */
         .sub-list { margin-bottom: 10px; border: 1px solid #eee; padding: 10px; border-radius: 4px; background: #fafafa; }
-        .sub-item { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; flex-wrap: wrap; }
+        .sub-item { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; padding-bottom: 5px; border-bottom: 1px solid #eee; }
         .sub-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .sub-item select, .sub-item input { flex-grow: 1; width: auto; min-width: 0; } 
+        .sub-btn-rem, .sub-btn-mov { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; }
+        .sub-btn-rem { background: #fadbd8; color: #c0392b; border-color: #e6b0aa; }
         
-        .sub-btn-add { background: #e0e0e0; border: none; font-size: 0.7rem; padding: 4px 8px; cursor: pointer; border-radius: 3px; }
-        .sub-btn-rem { background: #ffdede; color: red; border: none; cursor: pointer; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
-        .sub-btn-mov { background: #f0f0f0; border: 1px solid #ddd; cursor: pointer; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #666; flex-shrink: 0; }
-
-        /* SETTINGS GRID */
-        .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 0.75rem; color: #666;}
-        input, select, textarea { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; box-sizing: border-box; background: #fff; }
-        .viz-controls { background: #f9f9f9; padding: 10px; border-radius: 4px; margin-top: 10px; border: 1px solid #eee; }
-        .row { display: flex; gap: 10px; margin-top: 10px; } .col { flex: 1; }
-
-        /* FOOTER MENU */
-        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
-        button.menu-btn { padding: 6px 10px; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; font-weight: 600; font-size: 0.75rem; cursor: pointer; transition: transform 0.1s; flex-grow:1; text-align:center;}
-        button.menu-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-del { background: transparent; color: #c0392b; border: 1px solid #e74c3c; padding: 3px 6px; font-size: 0.65rem; }
+        /* VIZ CONTROLS */
+        .viz-controls { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px; border: 1px solid #eee; }
+        .viz-row { display: flex; gap: 10px; align-items: flex-end; }
         
-        /* TYPE COLORS */
-        .type-header { border-left-color: #bdc3c7; } .btn-header { background: #ecf0f1; color: #7f8c8d; }
-        .type-date_display { border-left-color: #2ecc71; } .btn-date { background: #d5f5e3; color: #196f3d; }
-        .type-world_clock { border-left-color: #1abc9c; } .btn-time { background: #d1f2eb; color: #0e6251; }
-        .type-visual_grid { border-left-color: #27ae60; } .btn-grid { background: #a9dfbf; color: #196f3d; }
-        .type-progress_group { border-left-color: #e67e22; } .btn-auto { background: #fdebd0; color: #935116; }
-        .type-progress_custom { border-left-color: #f1c40f; } .btn-custom { background: #fcf3cf; color: #7d6608; }
-        .type-progress_cycle { border-left-color: #9b59b6; } .btn-cycle { background: #ebdef0; color: #5b2c6f; }
-        .type-countdown { border-left-color: #3498db; } .btn-count { background: #d6eaf8; color: #154360; }
-        .type-timer { border-left-color: #e74c3c; } .btn-timer { background: #fadbd8; color: #78281f; }
-        .type-sequence { border-left-color: #8e44ad; } .btn-seq { background: #d2b4de; color: #6c3483; }
-        .type-counter { border-left-color: #d35400; } .btn-cnt { background: #edbb99; color: #ba4a00; }
-        .type-moon_phase { border-left-color: #34495e; } .btn-moon { background: #d6dbdf; color: #212f3d; }
-        .btn-util { background: #566573; color: #fff; }
-
+        /* SEARCH */
         .city-search-wrapper { position: relative; flex: 1; }
-        .city-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 0 0 4px 4px; max-height: 150px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: none; }
-        .city-result-item { padding: 8px; cursor: pointer; font-size: 0.85rem; border-bottom: 1px solid #f0f0f0; }
+        .city-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 150px; overflow-y: auto; z-index: 100; display: none; }
+        .city-result-item { padding: 6px; cursor: pointer; font-size: 0.8rem; border-bottom: 1px solid #f0f0f0; }
         .city-result-item:hover { background: #f0f0f0; }
+        
+        /* BLOCK COLORS */
+        .type-header { border-left-color: #bdc3c7; } .type-date_display { border-left-color: #2ecc71; }
+        .type-world_clock { border-left-color: #1abc9c; } .type-visual_grid { border-left-color: #27ae60; }
+        .type-progress_group { border-left-color: #e67e22; } .type-progress_custom { border-left-color: #f1c40f; }
+        .type-progress_cycle { border-left-color: #9b59b6; } .type-countdown { border-left-color: #3498db; }
+        .type-timer { border-left-color: #e74c3c; } .type-sequence { border-left-color: #8e44ad; }
+        .type-counter { border-left-color: #d35400; } .type-moon_phase { border-left-color: #34495e; }
+        .type-spacer { border-left-color: #566573; } .type-empty { border-left-color: #566573; }
     </style>
 </head>
 <body>
@@ -119,17 +88,20 @@
 <div class="main-container">
     <div class="panel-left">
         <div class="sticky-header">
-            <h1 class="header-title">Widget Builder</h1>
-            <div class="action-area">
-                <div class="link-box" id="result-url">...</div>
-                <button class="btn-action btn-refresh" onclick="refreshPreview()">↻</button>
-                <button class="btn-action btn-copy" id="btn-copy" onclick="copyLink()">Copy</button>
-                <button class="btn-action btn-open" onclick="window.open(generateLink(), '_blank')">⬈</button>
+            <div class="header-top">
+                <h1 class="header-title">Widget Builder</h1>
+                <div class="action-area">
+                    <div class="link-box" id="result-url">...</div>
+                    <button class="btn-action btn-refresh" onclick="refreshPreview()">↻</button>
+                    <button class="btn-action btn-copy" id="btn-copy" onclick="copyLink()">Copy</button>
+                    <button class="btn-action btn-open" onclick="window.open(generateLink(), '_blank')">⬈</button>
+                </div>
             </div>
         </div>
 
         <div class="scroll-content" id="scroll-container">
             <div class="dark-section">
+                <h3>General Settings</h3>
                 <div class="settings-grid">
                     <div><label>Time Format</label><select id="set-time" onchange="updateState()"><option value="12">12 Hour</option><option value="24">24 Hour</option></select></div>
                     <div><label>Week Start</label><select id="set-week" onchange="updateState()"><option value="monday">Monday</option><option value="sunday">Sunday</option></select></div>
@@ -139,27 +111,29 @@
                     <div><label>Padding</label><select id="set-pad" onchange="updateState()"><option value="comfortable">Comfortable</option><option value="compact">Compact</option><option value="spacious">Spacious</option></select></div>
                 </div>
             </div>
+            
+            <div style="border-bottom: 1px solid #ddd; margin: 5px 0;"></div>
+            <label style="font-size:0.8rem; color:#999; font-weight:bold;">BLOCKS</label>
 
             <div id="blocks-area"></div>
-            <div style="height: 50px;"></div> </div>
+            <div style="height: 60px;"></div>
+        </div>
 
         <div class="fixed-footer">
-            <label style="font-size:0.7rem; color:#999; margin-bottom:5px; display:block;">ADD BLOCK</label>
             <div class="btn-row">
-                <button class="menu-btn btn-header" onclick="addBlock('header')">Text</button>
-                <button class="menu-btn btn-date" onclick="addBlock('date_display')">Date</button>
-                <button class="menu-btn btn-time" onclick="addBlock('world_clock')">Time</button>
-                <button class="menu-btn btn-grid" onclick="addBlock('visual_grid')">Grid</button>
-                <button class="menu-btn btn-auto" onclick="addBlock('progress_group')">Auto</button>
-                <button class="menu-btn btn-custom" onclick="addBlock('progress_custom')">Goal</button>
-                <button class="menu-btn btn-cycle" onclick="addBlock('progress_cycle')">Cycle</button>
-                <button class="menu-btn btn-count" onclick="addBlock('countdown')">Count</button>
-                <button class="menu-btn btn-timer" onclick="addBlock('timer')">Timer</button>
-                <button class="menu-btn btn-seq" onclick="addBlock('sequence')">Seq</button>
-                <button class="menu-btn btn-cnt" onclick="addBlock('counter')">Tally</button>
-                <button class="menu-btn btn-moon" onclick="addBlock('moon_phase')">Moon</button>
-                <button class="menu-btn btn-util" onclick="addBlock('spacer')">Space</button>
-                <button class="menu-btn btn-util" onclick="addBlock('empty')">Empty</button>
+                <button class="menu-btn" onclick="addBlock('header')">Text</button>
+                <button class="menu-btn" onclick="addBlock('date_display')">Date</button>
+                <button class="menu-btn" onclick="addBlock('visual_grid')">Grid</button>
+                <button class="menu-btn" onclick="addBlock('progress_group')">Auto Progress</button>
+                <button class="menu-btn" onclick="addBlock('progress_custom')">Custom Progress</button>
+                <button class="menu-btn" onclick="addBlock('progress_cycle')">Cycle</button>
+                <button class="menu-btn" onclick="addBlock('countdown')">Countdown</button>
+                <button class="menu-btn" onclick="addBlock('timer')">Timer</button>
+                <button class="menu-btn" onclick="addBlock('sequence')">Sequence</button>
+                <button class="menu-btn" onclick="addBlock('counter')">Counter</button>
+                <button class="menu-btn" onclick="addBlock('moon_phase')">Moon</button>
+                <button class="menu-btn" onclick="addBlock('spacer')">Spacer</button>
+                <button class="menu-btn" onclick="addBlock('empty')">Empty Block</button>
             </div>
         </div>
     </div>
@@ -177,17 +151,19 @@
     let blocks = [];
     let dragSrc = null;
     
-    // CITY DATABASE
+    // FULL CITY DB (Injected)
     const cityDB = [
-        {name: "Abidjan", tz: "Africa/Abidjan"}, {name: "London", tz: "Europe/London"}, {name: "New York", tz: "America/New_York"},
-        {name: "Tokyo", tz: "Asia/Tokyo"}, {name: "Sydney", tz: "Australia/Sydney"}, {name: "Paris", tz: "Europe/Paris"},
-        {name: "Dubai", tz: "Asia/Dubai"}, {name: "Mumbai", tz: "Asia/Kolkata"}, {name: "Singapore", tz: "Asia/Singapore"},
-        {name: "Los Angeles", tz: "America/Los_Angeles"}, {name: "Boston", tz: "America/New_York"}, {name: "Pune", tz: "Asia/Kolkata"},
-        {name: "Tel Aviv", tz: "Asia/Jerusalem"}, {name: "Chennai", tz: "Asia/Kolkata"}, {name: "Austin", tz: "America/Chicago"},
-        {name: "Reykjavik", tz: "Atlantic/Reykjavik"}, {name: "Washington DC", tz: "America/New_York"}
+{name:"Abidjan",tz:"Africa/Abidjan"},{name:"Abu Dhabi",tz:"Asia/Dubai"},{name:"Abuja",tz:"Africa/Lagos"},{name:"Accra",tz:"Africa/Accra"},{name:"Adak",tz:"America/Adak"},{name:"Addis Ababa",tz:"Africa/Addis_Ababa"},{name:"Adelaide",tz:"Australia/Adelaide"},{name:"Algiers",tz:"Africa/Algiers"},{name:"Almaty",tz:"Asia/Almaty"},{name:"Amman",tz:"Asia/Amman"},{name:"Amsterdam",tz:"Europe/Amsterdam"},{name:"Anchorage",tz:"America/Anchorage"},{name:"Ankara",tz:"Europe/Istanbul"},{name:"Antananarivo",tz:"Indian/Antananarivo"},{name:"Athens",tz:"Europe/Athens"},{name:"Atlanta",tz:"America/New_York"},{name:"Auckland",tz:"Pacific/Auckland"},{name:"Austin",tz:"America/Chicago"},{name:"Baghdad",tz:"Asia/Baghdad"},{name:"Baku",tz:"Asia/Baku"},{name:"Bangkok",tz:"Asia/Bangkok"},{name:"Barcelona",tz:"Europe/Madrid"},{name:"Beijing",tz:"Asia/Shanghai"},{name:"Beirut",tz:"Asia/Beirut"},{name:"Belgrade",tz:"Europe/Belgrade"},{name:"Bengaluru",tz:"Asia/Kolkata"},{name:"Berlin",tz:"Europe/Berlin"},{name:"Bogota",tz:"America/Bogota"},{name:"Boston",tz:"America/New_York"},{name:"Brasilia",tz:"America/Sao_Paulo"},{name:"Brisbane",tz:"Australia/Brisbane"},{name:"Brussels",tz:"Europe/Brussels"},{name:"Bucharest",tz:"Europe/Bucharest"},{name:"Budapest",tz:"Europe/Budapest"},{name:"Buenos Aires",tz:"America/Argentina/Buenos_Aires"},{name:"Cairo",tz:"Africa/Cairo"},{name:"Calgary",tz:"America/Edmonton"},{name:"Canberra",tz:"Australia/Sydney"},{name:"Cape Town",tz:"Africa/Johannesburg"},{name:"Caracas",tz:"America/Caracas"},{name:"Casablanca",tz:"Africa/Casablanca"},{name:"Chennai",tz:"Asia/Kolkata"},{name:"Chicago",tz:"America/Chicago"},{name:"Copenhagen",tz:"Europe/Copenhagen"},{name:"Dakar",tz:"Africa/Dakar"},{name:"Dallas",tz:"America/Chicago"},{name:"Dar es Salaam",tz:"Africa/Dar_es_Salaam"},{name:"Darwin",tz:"Australia/Darwin"},{name:"Denver",tz:"America/Denver"},{name:"Detroit",tz:"America/Detroit"},{name:"Dhaka",tz:"Asia/Dhaka"},{name:"Doha",tz:"Asia/Qatar"},{name:"Dubai",tz:"Asia/Dubai"},{name:"Dublin",tz:"Europe/Dublin"},{name:"Edmonton",tz:"America/Edmonton"},{name:"Frankfurt",tz:"Europe/Berlin"},{name:"Guatemala City",tz:"America/Guatemala"},{name:"Halifax",tz:"America/Halifax"},{name:"Hanoi",tz:"Asia/Ho_Chi_Minh"},{name:"Harare",tz:"Africa/Harare"},{name:"Havana",tz:"America/Havana"},{name:"Helsinki",tz:"Europe/Helsinki"},{name:"Hong Kong",tz:"Asia/Hong_Kong"},{name:"Honolulu",tz:"Pacific/Honolulu"},{name:"Houston",tz:"America/Chicago"},{name:"Indianapolis",tz:"America/Indiana/Indianapolis"},{name:"Islamabad",tz:"Asia/Karachi"},{name:"Istanbul",tz:"Europe/Istanbul"},{name:"Jakarta",tz:"Asia/Jakarta"},{name:"Jerusalem",tz:"Asia/Jerusalem"},{name:"Johannesburg",tz:"Africa/Johannesburg"},{name:"Kabul",tz:"Asia/Kabul"},{name:"Kampala",tz:"Africa/Kampala"},{name:"Karachi",tz:"Asia/Karachi"},{name:"Kathmandu",tz:"Asia/Kathmandu"},{name:"Khartoum",tz:"Africa/Khartoum"},{name:"Kingston",tz:"America/Jamaica"},{name:"Kinshasa",tz:"Africa/Kinshasa"},{name:"Kolkata",tz:"Asia/Kolkata"},{name:"Kuala Lumpur",tz:"Asia/Kuala_Lumpur"},{name:"Kuwait City",tz:"Asia/Kuwait"},{name:"Kyiv",tz:"Europe/Kyiv"},{name:"Lagos",tz:"Africa/Lagos"},{name:"Lahore",tz:"Asia/Karachi"},{name:"Las Vegas",tz:"America/Los_Angeles"},{name:"Lima",tz:"America/Lima"},{name:"Lisbon",tz:"Europe/Lisbon"},{name:"London",tz:"Europe/London"},{name:"Los Angeles",tz:"America/Los_Angeles"},{name:"Luanda",tz:"Africa/Luanda"},{name:"Madrid",tz:"Europe/Madrid"},{name:"Manila",tz:"Asia/Manila"},{name:"Melbourne",tz:"Australia/Melbourne"},{name:"Mexico City",tz:"America/Mexico_City"},{name:"Miami",tz:"America/New_York"},{name:"Minneapolis",tz:"America/Chicago"},{name:"Minsk",tz:"Europe/Minsk"},{name:"Montevideo",tz:"America/Montevideo"},{name:"Montreal",tz:"America/Toronto"},{name:"Moscow",tz:"Europe/Moscow"},{name:"Mumbai",tz:"Asia/Kolkata"},{name:"Muscat",tz:"Asia/Muscat"},{name:"Nairobi",tz:"Africa/Nairobi"},{name:"New Delhi",tz:"Asia/Kolkata"},{name:"New Orleans",tz:"America/Chicago"},{name:"New York",tz:"America/New_York"},{name:"Oslo",tz:"Europe/Oslo"},{name:"Ottawa",tz:"America/Toronto"},{name:"Paris",tz:"Europe/Paris"},{name:"Perth",tz:"Australia/Perth"},{name:"Philadelphia",tz:"America/New_York"},{name:"Phoenix",tz:"America/Phoenix"},{name:"Prague",tz:"Europe/Prague"},{name:"Pune",tz:"Asia/Kolkata"},{name:"Pyongyang",tz:"Asia/Pyongyang"},{name:"Quito",tz:"America/Guayaquil"},{name:"Reykjavik",tz:"Atlantic/Reykjavik"},{name:"Rio de Janeiro",tz:"America/Sao_Paulo"},{name:"Riyadh",tz:"Asia/Riyadh"},{name:"Rome",tz:"Europe/Rome"},{name:"Salt Lake City",tz:"America/Denver"},{name:"San Francisco",tz:"America/Los_Angeles"},{name:"San Juan",tz:"America/Puerto_Rico"},{name:"Santiago",tz:"America/Santiago"},{name:"Sao Paulo",tz:"America/Sao_Paulo"},{name:"Seattle",tz:"America/Los_Angeles"},{name:"Seoul",tz:"Asia/Seoul"},{name:"Shanghai",tz:"Asia/Shanghai"},{name:"Singapore",tz:"Asia/Singapore"},{name:"Sofia",tz:"Europe/Sofia"},{name:"Stockholm",tz:"Europe/Stockholm"},{name:"Sydney",tz:"Australia/Sydney"},{name:"Taipei",tz:"Asia/Taipei"},{name:"Tallinn",tz:"Europe/Tallinn"},{name:"Tashkent",tz:"Asia/Tashkent"},{name:"Tehran",tz:"Asia/Tehran"},{name:"Tel Aviv",tz:"Asia/Jerusalem"},{name:"Tokyo",tz:"Asia/Tokyo"},{name:"Toronto",tz:"America/Toronto"},{name:"Tunis",tz:"Africa/Tunis"},{name:"Vancouver",tz:"America/Vancouver"},{name:"Vienna",tz:"Europe/Vienna"},{name:"Vladivostok",tz:"Asia/Vladivostok"},{name:"Warsaw",tz:"Europe/Warsaw"},{name:"Washington DC",tz:"America/New_York"},{name:"Wellington",tz:"Pacific/Auckland"},{name:"Winnipeg",tz:"America/Winnipeg"},{name:"Yangon",tz:"Asia/Yangon"},{name:"Yerevan",tz:"Asia/Yerevan"},{name:"Zagreb",tz:"Europe/Zagreb"},{name:"Zurich",tz:"Europe/Zurich"}
     ];
 
-    const dateTokens = [ {val:'day_name_full',txt:'Day Name'}, {val:'day_name_short',txt:'Day (Mon)'}, {val:'date_num',txt:'Date (28)'}, {val:'month_full',txt:'Month Name'}, {val:'month_short',txt:'Month (Jan)'}, {val:'month_num',txt:'Month (01)'}, {val:'year',txt:'Year'}, {val:'week_num',txt:'Week #'}, {val:'day_year',txt:'Day of Year'}, {val:'quarter',txt:'Quarter'}, {val:'separator',txt:'Separator (|)'} ];
+    const dateTokens = [
+        {val: 'day_name_full', txt: 'Day Name (Monday)'}, {val: 'day_name_short', txt: 'Day (Mon)'},
+        {val: 'date_num', txt: 'Date (01)'}, {val: 'month_full', txt: 'Month Name'},
+        {val: 'month_short', txt: 'Month (Jan)'}, {val: 'month_num', txt: 'Month (01)'},
+        {val: 'year', txt: 'Year'}, {val: 'week_num', txt: 'Week #'},
+        {val: 'day_year', txt: 'Day of Year'}, {val: 'quarter', txt: 'Quarter'},
+        {val: 'separator', txt: '|'}, {val: 'space', txt: 'Space'}, {val: 'slash', txt: '/'}
+    ];
 
     function init() {
         try {
@@ -196,7 +172,6 @@
                 const data = JSON.parse(atob(hash));
                 settings = data.settings || settings;
                 blocks = data.blocks || blocks;
-                // Hydrate inputs
                 document.getElementById('set-time').value = settings.use24h ? '24' : '12';
                 document.getElementById('set-week').value = settings.weekStart || 'monday';
                 document.getElementById('set-theme').value = settings.theme || 'standard';
@@ -232,10 +207,8 @@
         refreshPreview();
     };
 
-    // --- CORE LOGIC ---
     window.updateBlock = (i, k, v) => { 
         blocks[i][k] = v; 
-        // Dynamic Label Update
         if(k === 'label' || k === 'text') {
             const headerTitle = document.querySelector(`.block-card[data-index="${i}"] .block-label-preview`);
             if(headerTitle) headerTitle.innerText = v;
@@ -249,30 +222,31 @@
         if(k==='locations') blocks[bI][k].push({label:'', timezone:''});
         if(k==='items') blocks[bI][k].push({label:'New Bar', type:'month'});
         if(k==='steps') blocks[bI][k].push({label:'Step', duration:5});
-        renderBlocks(true); updateState(); // Keep open
+        renderBlocks(true, bI); updateState(); 
     };
     
     window.addDateItem = (bI, key) => { 
         if(!blocks[bI][key]) blocks[bI][key] = []; 
-        blocks[bI][key].push('separator'); 
-        renderBlocks(true); updateState(); 
+        blocks[bI][key].push('space'); 
+        renderBlocks(true, bI); updateState(); 
     };
     
-    window.removeSubItem = (bI, k, iI) => { blocks[bI][k].splice(iI, 1); renderBlocks(true); updateState(); };
+    window.removeSubItem = (bI, k, iI) => { blocks[bI][k].splice(iI, 1); renderBlocks(true, bI); updateState(); };
     window.moveItem = (bI, k, iI, dir) => {
         const arr = blocks[bI][k];
-        if (iI + dir >= 0 && iI + dir < arr.length) { [arr[iI], arr[iI + dir]] = [arr[iI + dir], arr[iI]]; renderBlocks(true); updateState(); }
+        if (iI + dir >= 0 && iI + dir < arr.length) { 
+            [arr[iI], arr[iI + dir]] = [arr[iI + dir], arr[iI]]; 
+            renderBlocks(true, bI); updateState(); 
+        }
     };
 
     window.addBlock = (t) => {
-        let b = { type: t };
-        // DEFAULT VALUES RESTORED
+        let b = { type: t, width: '100' };
         if(t=='header') b.text='Title';
         if(t=='world_clock') b.locations=[{label:'London',timezone:'Europe/London', _searchVal:'London'}];
-        if(t=='date_display') { b.line1=['day_name_full', 'month_full', 'date_num']; b.line2=['week_num', 'separator', 'quarter']; }
+        if(t=='date_display') { b.line1=['day_name_full', 'space', 'date_num']; b.line2=['month_full', 'space', 'year']; }
         if(t=='progress_group') b.items = [{type:'life', label:'Life', visible:true, dob:'1990-01-01', expectancy:85},{type:'year', label:'Year', visible:true},{type:'quarter', label:'Quarter', visible:true},{type:'month', label:'Month', visible:true},{type:'week', label:'Week', visible:true},{type:'day', label:'Day', visible:true}];
-        if(t=='visual_grid') { b.gridType='year'; b.blockSize='sm'; b.showLabels=true; }
-        if(t=='moon_phase') { b.showIcon=true; b.showPhase=true; b.showPercent=false; b.showAge=true; b.showName=true; }
+        if(t=='visual_grid') { b.gridType='year'; b.blockSize='sm'; }
         if(t=='sequence') { b.label='Routine'; b.steps=[{label:'Focus', duration:25}, {label:'Rest', duration:5}]; }
         if(t=='counter') b.label='Counter';
         if(t=='spacer') { b.height = '20'; b.style='solid'; b.thickness='1px'; }
@@ -280,14 +254,12 @@
         if(t=='progress_cycle') { b.label='Cycle'; b.anchor='2026-01-01'; b.days='28'; }
         if(t=='countdown') { b.label='Event'; b.date='2026-12-31'; b.style='standard'; b.includeTime=false; }
         if(t=='timer') { b.label='Focus'; b.hours=0; b.minutes=25; }
+        if(t=='empty') { b.label='Empty'; }
         
         blocks.push(b); 
-        
-        // FOCUS MODE: Collapse others, expand new, scroll to it
         const newIndex = blocks.length - 1;
-        renderBlocks(false, newIndex); // Pass index to keep open
+        renderBlocks(false, newIndex); 
         updateState();
-        
         setTimeout(() => {
             const el = document.getElementById(`card-${newIndex}`);
             if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -296,15 +268,10 @@
     
     window.removeBlock = (i) => { blocks.splice(i, 1); renderBlocks(); updateState(); };
 
-    // --- RENDERERS ---
     function renderBlocks(keepOpen = false, specificIndex = -1) {
-        // Track open state
         let openIndices = [];
-        if(specificIndex >= 0) {
-            openIndices = [specificIndex];
-        } else if(keepOpen) {
-            document.querySelectorAll('.block-card.open').forEach(el => openIndices.push(parseInt(el.dataset.index)));
-        }
+        if(specificIndex >= 0) openIndices = [specificIndex];
+        else if(keepOpen) document.querySelectorAll('.block-card.open').forEach(el => openIndices.push(parseInt(el.dataset.index)));
 
         const area = document.getElementById('blocks-area');
         area.innerHTML = '';
@@ -325,21 +292,18 @@
             });
             div.addEventListener('dragend', function() { this.classList.remove('dragging'); });
 
-            // Dynamic Label Logic
             let title = block.type.toUpperCase().replace('_',' ');
-            let dynamicLabel = block.label || block.text || "";
-            if(dynamicLabel.length > 20) dynamicLabel = dynamicLabel.substring(0,20) + "...";
-
+            let label = block.label || block.text || "";
+            
             let html = `
                 <div class="block-header" onclick="this.parentElement.classList.toggle('open')">
                     <span style="color:#ccc;">☰</span>
-                    <span class="block-title">${title} <span class="block-label-preview">${dynamicLabel}</span></span>
+                    <span class="block-title">${title} <span class="block-label-preview">${label}</span></span>
                     <button class="btn-del" onclick="event.stopPropagation(); removeBlock(${index})">DEL</button>
                 </div>
                 <div class="block-content">
             `;
 
-            // BLOCK SPECIFIC INPUTS
             if (block.type === 'header') html += `<label>Text</label><input type="text" value="${block.text}" oninput="updateBlock(${index}, 'text', this.value)">`;
             else if (block.type === 'world_clock') { html += `<div class="sub-list" id="sub-list-${index}"></div><button class="sub-btn-add" onclick="addSubItem(${index}, 'locations')">+ Add City</button>`; }
             else if (block.type === 'date_display') { 
@@ -348,19 +312,9 @@
             }
             else if (block.type === 'progress_group') { html += `<div class="sub-list" id="sub-list-${index}"></div>`; }
             else if (block.type === 'visual_grid') { 
-                html += `<div class="row"><div class="col"><label>Grid Type</label><select onchange="updateBlock(${index}, 'gridType', this.value)"><option value="year" ${block.gridType=='year'?'selected':''}>Year (Weeks)</option><option value="quarter" ${block.gridType=='quarter'?'selected':''}>Quarter (3x4)</option><option value="month" ${block.gridType=='month'?'selected':''}>Month (Days)</option><option value="week" ${block.gridType=='week'?'selected':''}>Week (Days)</option><option value="day" ${block.gridType=='day'?'selected':''}>Day (Hours)</option><option value="life" ${block.gridType=='life'?'selected':''}>Life (Years)</option></select></div>
-                <div class="col"><label>Block Size</label><select onchange="updateBlock(${index}, 'blockSize', this.value)"><option value="sm" ${block.blockSize=='sm'?'selected':''}>Small</option><option value="md" ${block.blockSize=='md'?'selected':''}>Medium</option><option value="lg" ${block.blockSize=='lg'?'selected':''}>Large</option></select></div></div>
-                <div style="margin-top:8px;"><label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'showLabels', this.checked)" ${block.showLabels!==false?'checked':''}> Show Labels/Numbers</label></div>`;
+                html += `<div class="row"><div class="col"><label>Grid Type</label><select onchange="updateBlock(${index}, 'gridType', this.value)"><option value="year" ${block.gridType=='year'?'selected':''}>Year (Weeks)</option><option value="quarter" ${block.gridType=='quarter'?'selected':''}>Quarter (3x4)</option><option value="month" ${block.gridType=='month'?'selected':''}>Month (Calendar)</option><option value="week" ${block.gridType=='week'?'selected':''}>Week (Days)</option><option value="day" ${block.gridType=='day'?'selected':''}>Day (Hours)</option><option value="life" ${block.gridType=='life'?'selected':''}>Life (Years)</option></select></div>
+                <div class="col"><label>Block Size</label><select onchange="updateBlock(${index}, 'blockSize', this.value)"><option value="sm" ${block.blockSize=='sm'?'selected':''}>Small</option><option value="md" ${block.blockSize=='md'?'selected':''}>Medium</option><option value="lg" ${block.blockSize=='lg'?'selected':''}>Large</option></select></div></div>`;
                 if(block.gridType === 'life') html += `<div style="display:flex; gap:5px; margin-top:5px;"><input type="date" value="${block.dob || '1990-01-01'}" oninput="updateBlock(${index}, 'dob', this.value)"><input type="number" placeholder="Exp Age" value="${block.expectancy || 80}" oninput="updateBlock(${index}, 'expectancy', this.value)"></div>`;
-            }
-            else if (block.type === 'moon_phase') {
-                html += `<div style="display:flex; flex-wrap:wrap; gap:10px;">
-                <label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'showIcon', this.checked)" ${block.showIcon!==false?'checked':''}> Icon</label>
-                <label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'showPhase', this.checked)" ${block.showPhase!==false?'checked':''}> Phase Name</label>
-                <label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'showPercent', this.checked)" ${block.showPercent===true?'checked':''}> %</label>
-                <label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'showAge', this.checked)" ${block.showAge!==false?'checked':''}> Days Old</label>
-                <label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'showName', this.checked)" ${block.showName!==false?'checked':''}> Moon Name</label>
-                </div>`;
             }
             else if (block.type === 'sequence') { html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="sub-list" id="sub-list-${index}"></div><button class="sub-btn-add" onclick="addSubItem(${index}, 'steps')">+ Step</button>`; }
             else if (block.type === 'counter') { html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)">`; }
@@ -372,24 +326,26 @@
             else if (block.type === 'empty') { html += `<div style="font-size:0.8em; color:#888;">Empty space block.</div>`; }
             else if (block.type === 'countdown') {
                 html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><input type="date" value="${block.date}" oninput="updateBlock(${index}, 'date', this.value)">
-                <div class="row"><div class="col"><label>Format</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="standard" ${block.style=='standard'?'selected':''}>Standard (5 Days)</option><option value="precise" ${block.style=='precise'?'selected':''}>Precise (5d 4h)</option><option value="full" ${block.style=='full'?'selected':''}>Full (5d 4h 30m)</option></select></div>
-                <div class="col" style="display:flex; align-items:center;"><label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'includeTime', this.checked)" ${block.includeTime===true?'checked':''}> Specific Time?</label></div></div>
+                <div class="row"><div class="col" style="display:flex; align-items:center;"><label><input type="checkbox" style="width:auto" onchange="updateBlockAndRender(${index}, 'includeTime', this.checked)" ${block.includeTime===true?'checked':''}> Specific Time?</label></div>
+                <div class="col"><label>Format</label><select onchange="updateBlock(${index}, 'style', this.value)"><option value="standard" ${block.style=='standard'?'selected':''}>Standard (5 Days)</option><option value="precise" ${block.style=='precise'?'selected':''}>Precise (5d 4h)</option><option value="full" ${block.style=='full'?'selected':''}>Full (5d 4h 30m)</option></select></div></div>
                 ${block.includeTime ? `<input type="time" value="${block.time||'00:00'}" oninput="updateBlock(${index}, 'time', this.value)">` : ''}`; 
             }
             else if (block.type === 'timer') html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><input type="number" value="${block.hours}" oninput="updateBlock(${index}, 'hours', this.value)" placeholder="Hrs"></div><div class="col"><input type="number" value="${block.minutes}" oninput="updateBlock(${index}, 'minutes', this.value)" placeholder="Mins"></div></div>`;
             else if (block.type === 'progress_custom') html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><input type="date" value="${block.start}" oninput="updateBlock(${index}, 'start', this.value)"></div><div class="col"><input type="date" value="${block.end}" oninput="updateBlock(${index}, 'end', this.value)"></div></div>`;
             else if (block.type === 'progress_cycle') html += `<label>Label</label><input value="${block.label}" oninput="updateBlock(${index}, 'label', this.value)"><div class="row"><div class="col"><input type="date" value="${block.anchor}" oninput="updateBlock(${index}, 'anchor', this.value)"></div><div class="col"><input type="number" value="${block.days}" oninput="updateBlock(${index}, 'days', this.value)"></div></div><select onchange="updateBlock(${index}, 'resetMode', this.value)"><option value="auto" ${block.resetMode!='manual'?'selected':''}>Auto Loop</option><option value="manual" ${block.resetMode=='manual'?'selected':''}>Manual Reset</option></select>`;
 
-            // VISUAL CONTROLS (Split Color Logic + Width)
+            // COLOR ENGINE 2.0
             html += `<div class="viz-controls">
-                <div class="row" style="margin-top:0;">
-                    <div class="col"><label>Accent Color</label><div style="display:flex;gap:5px;">
-                        <input type="color" value="${block.color && block.color.startsWith('#')?block.color:'#000000'}" onchange="updateBlock(${index}, 'color', this.value)" style="width:100%;height:32px;cursor:pointer;">
+                <div class="viz-row">
+                    <div class="col"><label>Accent</label><div style="display:flex;gap:5px;">
+                        <select onchange="updateBlock(${index}, 'colorPreset', this.value)" style="flex:1"><option value="default">Def</option><option value="gray">Gray</option><option value="blue">Blue</option><option value="red">Red</option><option value="green">Green</option></select>
+                        <input type="color" value="${block.color && block.color.startsWith('#')?block.color:'#000000'}" onchange="updateBlock(${index}, 'color', this.value)" style="width:30px;height:32px;cursor:pointer;">
                     </div></div>
-                    <div class="col"><label>Text Color</label><div style="display:flex;gap:5px;">
-                        <input type="color" value="${block.textColor && block.textColor.startsWith('#')?block.textColor:'#37352f'}" onchange="updateBlock(${index}, 'textColor', this.value)" style="width:100%;height:32px;cursor:pointer;">
+                    <div class="col"><label>Text</label><div style="display:flex;gap:5px;">
+                        <select onchange="updateBlock(${index}, 'textPreset', this.value)" style="flex:1"><option value="default">Def</option><option value="gray">Gray</option><option value="blue">Blue</option></select>
+                        <input type="color" value="${block.textColor && block.textColor.startsWith('#')?block.textColor:'#37352f'}" onchange="updateBlock(${index}, 'textColor', this.value)" style="width:30px;height:32px;cursor:pointer;">
                     </div></div>
-                    <div class="col"><label>Width</label><select onchange="updateBlock(${index}, 'width', this.value)"><option value="100">Full</option><option value="50" ${block.width=='50'?'selected':''}>1/2</option><option value="33" ${block.width=='33'?'selected':''}>1/3</option></select></div>
+                    <div class="col"><label>Width</label><select onchange="updateBlock(${index}, 'width', this.value)"><option value="100">Full</option><option value="50" ${block.width=='50'?'selected':''}>Half</option><option value="33" ${block.width=='33'?'selected':''}>1/3</option></select></div>
                 </div>
             </div></div>`;
             
@@ -407,7 +363,6 @@
         const container = document.getElementById(`sub-list-${bIdx}`); if(!container) return; container.innerHTML = '';
         array.forEach((item, iIdx) => {
             const row = document.createElement('div'); row.className = 'sub-item';
-            // Search / Label Side-by-Side
             const wrapper = document.createElement('div'); wrapper.style.cssText = 'display:flex;width:100%;gap:8px;align-items:flex-start;';
             const searchWrap = document.createElement('div'); searchWrap.className = 'city-search-wrapper'; searchWrap.style.flex = '1';
             const input = document.createElement('input'); input.placeholder = "🔍 Search..."; input.value = item._searchVal || ''; 
@@ -417,9 +372,12 @@
             searchWrap.append(input, results);
             const lbl = document.createElement('input'); lbl.style.flex = '1'; lbl.value = item.label || ''; 
             lbl.oninput = (e) => { blocks[bIdx].locations[iIdx].label = e.target.value; updateState(); };
-            const del = document.createElement('button'); del.className = 'sub-btn-rem'; del.innerText = '×';
-            del.onclick = () => removeSubItem(bIdx, 'locations', iIdx);
-            wrapper.append(searchWrap, lbl, del); row.appendChild(wrapper); container.appendChild(row);
+            const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'locations', ${iIdx}, -1)">↑</button>`;
+            const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'locations', ${iIdx}, 1)">↓</button>`;
+            const del = `<button class="sub-btn-rem" onclick="removeSubItem(${bIdx}, 'locations', ${iIdx})">×</button>`;
+            wrapper.innerHTML = ""; wrapper.append(searchWrap, lbl); 
+            wrapper.insertAdjacentHTML('beforeend', up+down+del);
+            row.appendChild(wrapper); container.appendChild(row);
         });
     }
     
@@ -430,7 +388,12 @@
         if(matches.length === 0) { results.style.display = 'none'; return; }
         matches.forEach(city => {
             const div = document.createElement('div'); div.className = 'city-result-item'; div.innerText = city.name;
-            div.onclick = () => { blocks[bIdx].locations[iIdx]._searchVal = city.name; blocks[bIdx].locations[iIdx].label = city.name.split(',')[0]; blocks[bIdx].locations[iIdx].timezone = city.tz; updateState(); renderBlocks(true); };
+            div.onclick = () => {
+                blocks[bIdx].locations[iIdx]._searchVal = city.name;
+                blocks[bIdx].locations[iIdx].label = city.name.split(',')[0]; 
+                blocks[bIdx].locations[iIdx].timezone = city.tz;
+                updateState(); renderBlocks(true, bIdx); 
+            };
             results.appendChild(div);
         });
         results.style.display = 'block';
@@ -446,9 +409,9 @@
             check.checked = item.visible !== false; check.onchange = (e) => { blocks[bIdx].items[iIdx].visible = e.target.checked; updateState(); };
             const lbl = document.createElement('input'); lbl.style.flex='1'; lbl.value = item.label;
             lbl.oninput = (e) => { blocks[bIdx].items[iIdx].label = e.target.value; updateState(); };
-            const up = document.createElement('button'); up.className = 'sub-btn-mov'; up.innerText = '↑'; up.onclick = () => moveItem(bIdx, 'items', iIdx, -1);
-            const down = document.createElement('button'); down.className = 'sub-btn-mov'; down.innerText = '↓'; down.onclick = () => moveItem(bIdx, 'items', iIdx, 1);
-            mainRow.append(check, lbl, up, down); row.appendChild(mainRow);
+            const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'items', ${iIdx}, -1)">↑</button>`;
+            const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, 'items', ${iIdx}, 1)">↓</button>`;
+            mainRow.append(check, lbl); mainRow.insertAdjacentHTML('beforeend', up+down); row.appendChild(mainRow);
             if(item.type === 'life') {
                 const lifeRow = document.createElement('div'); lifeRow.style.cssText = 'display:flex;width:100%;gap:10px;margin-top:8px;padding-left:24px;align-items:center;';
                 lifeRow.innerHTML = `<label style="font-size:0.7rem">DOB:</label><input type="date" value="${item.dob||'1990-01-01'}" oninput="updateSubItem(${bIdx}, 'items', ${iIdx}, 'dob', this.value)" style="width:110px">
@@ -477,8 +440,10 @@
             const sel = document.createElement('select');
             dateTokens.forEach(t => { sel.innerHTML += `<option value="${t.val}" ${((typeof item==='string'?item:item.type)==t.val)?'selected':''}>${t.txt}</option>`; });
             sel.onchange = (e) => { blocks[bIdx][key][iIdx] = e.target.value; updateState(); };
-            const del = document.createElement('button'); del.className = 'sub-btn-rem'; del.innerText = '×'; del.onclick = () => { blocks[bIdx][key].splice(iIdx, 1); renderBlocks(true); updateState(); };
-            row.append(sel, del); container.appendChild(row);
+            const up = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, '${key}', ${iIdx}, -1)">↑</button>`;
+            const down = `<button class="sub-btn-mov" onclick="moveItem(${bIdx}, '${key}', ${iIdx}, 1)">↓</button>`;
+            const del = `<button class="sub-btn-rem" onclick="removeSubItem(${bIdx}, '${key}', ${iIdx})">×</button>`;
+            row.append(sel); row.insertAdjacentHTML('beforeend', up+down+del); container.appendChild(row);
         });
     }
 
@@ -493,6 +458,9 @@
         return final;
     }
     window.copyLink = () => { navigator.clipboard.writeText(document.getElementById('result-url').innerText).then(() => { const btn = document.getElementById('btn-copy'); btn.innerText = "COPIED!"; setTimeout(() => btn.innerText = "COPY", 1000); }); };
+    
+    // Quick helper for block re-rendering after update (keeps focus where possible by just updating state)
+    // For moves/adds/deletes we call renderBlocks(true, index)
     
     init();
 </script>
