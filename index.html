@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Widget V41</title>
+    <title>Notion Widget V42</title>
     <style>
         :root {
             --bg-color: #FFFFFF; --text-color: #37352F; --accent-color: #E3E2E0;
@@ -22,7 +22,7 @@
         .theme-card .widget-block { border-color: var(--accent-color); padding: var(--pad); }
         .theme-minimal .progress-bg { height: 4px; }
         
-        /* COLOR LOGIC V41: DEFAULT TO NOTION BLACK IF NO COLOR SET */
+        /* COLOR LOGIC V42 */
         .widget-header { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-color, inherit); }
         
         /* GRID 3.0 */
@@ -36,6 +36,8 @@
         /* COMPONENTS */
         .progress-wrapper { margin-bottom: 0.5rem; }
         .progress-meta { display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 2px; color: var(--text-color, inherit); }
+        
+        /* V42: Explicit colors */
         .progress-bg { height: 8px; background: rgba(128,128,128, 0.2); border-radius: 4px; overflow: hidden; } 
         .progress-fill { height: 100%; width: 0%; transition: width 0.5s ease-in-out; } 
         
@@ -73,7 +75,7 @@
         .spacer-line { width: 100%; border-bottom-color: var(--block-color, #37352F); opacity: 0.5; }
         .spacer-dashed { border-bottom-style: dashed; } .spacer-dotted { border-bottom-style: dotted; } .spacer-solid { border-bottom-style: solid; }
         
-        /* RESET BUTTON (Visible by default, toggled in JS) */
+        /* RESET BUTTON */
         .cycle-reset-btn { 
             background: rgba(255,255,255,0.9); 
             border: 1px solid #ccc; 
@@ -99,19 +101,31 @@
         const container = document.getElementById('dashboard');
 
         // --- GLOBAL HELPER (Must be first) ---
-        function createBarElement(label, start, end, isCycle, cycleId) {
+        // V42: Updated to accept days for initial Cycle calculation
+        function createBarElement(label, start, end, isCycle, cycleId, daysForCycle) {
             let pct = 0;
-            // V41 FIX: Move "Is Done" calculation here for initial render state
             let isDone = false;
             
+            // Standard Progress
             if(!isCycle && start && end) { 
                 const now = new Date(); 
                 if(now > end) pct = 100; else if(now > start) pct = Math.max(0, ((now - start) / (end - start)) * 100); 
             }
-            // Logic for Cycle initial state
-            if(isCycle && start) {
-               // We need 'days' here but this helper signature is limited. 
-               // For now, rely on dynamic update, BUT render button structure.
+            
+            // V42: IMMEDIATE CYCLE CHECK
+            if(isCycle && start && daysForCycle) {
+                const now = new Date();
+                const duration = parseFloat(daysForCycle) * 86400000;
+                const elapsed = now - start;
+                // We don't know the exact reset mode here (passed as arg?) 
+                // but we can check if it is "done" enough to show button.
+                // Assuming manual mode as default logic for button visibility.
+                if(elapsed >= duration) {
+                    pct = 100;
+                    isDone = true;
+                } else if(elapsed > 0) {
+                    pct = (elapsed / duration) * 100;
+                }
             }
 
             if(isNaN(pct)) pct = 0;
@@ -119,16 +133,23 @@
             const wrapper = document.createElement('div'); wrapper.className = 'progress-wrapper';
             const safeColor = 'var(--block-color, #37352F)';
             
-            // V41: PRE-RENDER BUTTON
+            // V42: RENDER BUTTON IF DONE IMMEDIATELY
             let resetBtn = '';
+            let valText = `${pct.toFixed(1)}%`;
+            let btnStyle = 'display:none';
+            
             if(isCycle) {
-                resetBtn = `<button id="reset-btn-${cycleId}" class="cycle-reset-btn" onclick="window.resetCycle('${cycleId}')">↻</button>`;
+                if(isDone) {
+                    valText = "Done";
+                    btnStyle = 'display:inline-block';
+                }
+                resetBtn = `<button id="reset-btn-${cycleId}" class="cycle-reset-btn" style="${btnStyle}" onclick="window.resetCycle('${cycleId}')">↻</button>`;
             }
 
             wrapper.innerHTML = `
                 <div class="progress-meta">
                     <span>${label || 'Progress'}</span>
-                    <span><span id="pct-${cycleId || Math.random().toString(36).substr(2, 5)}">${pct.toFixed(1)}%</span>${resetBtn}</span>
+                    <span><span id="pct-${cycleId || Math.random().toString(36).substr(2, 5)}">${valText}</span>${resetBtn}</span>
                 </div>
                 <div class="progress-bg">
                     <div class="progress-fill" style="width: ${pct}%; background-color:${safeColor}"></div>
@@ -136,13 +157,15 @@
             return wrapper;
         }
 
-        // V41: ENSURE GLOBAL SCOPE
+        // V42: ENSURE GLOBAL SCOPE
         window.resetCycle = (idx) => { 
             const sIdx = String(idx);
             if(sIdx && sIdx !== 'undefined' && sIdx !== 'null') {
                 localStorage.setItem(`cycle_reset_block-${sIdx}`, new Date().getTime()); 
                 const btn = document.getElementById(`reset-btn-${sIdx}`);
                 if(btn) btn.style.display = 'none';
+                // Trigger re-render to update UI immediately
+                location.reload(); 
             }
         };
 
@@ -194,7 +217,16 @@
                     if(!isNaN(s) && !isNaN(e)) div.appendChild(createBarElement(block.label, s, e, false, `custom-${index}`));
                 }
                 else if(block.type === 'progress_cycle') { 
-                    const wrap = createBarElement(block.label, null, null, true, index); // Passing index as ID
+                    // V42: Handle Cycle Initial State
+                    let anchor = new Date(block.anchor);
+                    // Check if Manual Reset override exists
+                    if (block.resetMode === 'manual') {
+                        const restartTs = localStorage.getItem(`cycle_reset_block-${index}`);
+                        if(restartTs) anchor = new Date(parseInt(restartTs));
+                    }
+                    if(isNaN(anchor.getTime())) anchor = new Date();
+
+                    const wrap = createBarElement(block.label, anchor, null, true, index, block.days); 
                     wrap.id=`cycle-wrap-${index}`; 
                     div.appendChild(wrap); 
                 }
@@ -391,10 +423,12 @@
         function updateDynamics(blocks, settings) {
             const now = new Date(); const use24h = settings.use24h === true;
             blocks.forEach((block, bIdx) => {
-                // V41: Logic for Cycle Updates
+                // V42: Logic for Cycle Updates
                 if (block.type === 'progress_cycle') {
-                    const resetMode = block.resetMode || 'manual'; // DEFAULT MANUAL
+                    const resetMode = block.resetMode || 'manual'; // Default to manual
                     let anchor = new Date(block.anchor);
+                    
+                    // Always check manual override if mode is manual
                     if (resetMode === 'manual') {
                         const restartTs = localStorage.getItem(`cycle_reset_block-${bIdx}`);
                         if(restartTs) anchor = new Date(parseInt(restartTs));
@@ -431,7 +465,7 @@
                     }
                 }
                 
-                // V41: Logic for Auto Progress Updates
+                // V42: Logic for Auto Progress Updates
                 if (block.type === 'progress_group') {
                     block.items.forEach((item, iIdx) => {
                         const uniqueId = `prog-${bIdx}-${iIdx}`;
@@ -457,7 +491,7 @@
                     });
                 }
 
-                // ... (Other blocks V40 logic preserved)
+                // ... (Other blocks V41 logic preserved)
                 if (block.type === 'world_clock') {
                     block.locations.forEach((loc, lIdx) => {
                         const timeEl = document.getElementById(`clock-${bIdx}-${lIdx}`);
@@ -517,14 +551,13 @@
             });
         }
         
-        // V41 FIX: STRING ID FOR RESET
         window.resetCycle = (idx) => { 
             const sIdx = String(idx);
             if(sIdx && sIdx !== 'undefined' && sIdx !== 'null') {
                 localStorage.setItem(`cycle_reset_block-${sIdx}`, new Date().getTime()); 
-                // Force update immediately
                 const btn = document.getElementById(`reset-btn-${sIdx}`);
                 if(btn) btn.style.display = 'none';
+                location.reload(); 
             }
         };
         
